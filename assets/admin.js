@@ -11,6 +11,9 @@
   var DEFAULTS = window.ASTRO_DEFAULT_CONTENT || {};
   var data = clone(DEFAULTS);
 
+  // Bundled, self-hosted fonts available to choose from (must match @font-face names in fonts.css)
+  var ALL_FONTS = ["Space Grotesk", "Syne", "Sora", "Fraunces", "Manrope", "Plus Jakarta Sans", "Inter", "DM Sans"];
+
   /* ---------- schema ---------- */
   var SCHEMA = [
     { id: "brand", title: "Brand", intro: "Your agency name as shown in the nav and footer.",
@@ -25,6 +28,12 @@
         { p: "theme.deep", l: "Deep Teal" },
         { p: "theme.navy", l: "Navy (dark base)" },
         { p: "theme.mint", l: "Mint (light accent)" }
+      ] },
+
+    { id: "typography", title: "Typography", intro: "Choose the fonts for headings and body text. All fonts are bundled and work offline — changes apply across the whole site after you Save.",
+      fields: [
+        { p: "fonts.display", l: "Display font (headings & logo)", t: "select", opts: ALL_FONTS },
+        { p: "fonts.body", l: "Body font (paragraphs & UI)", t: "select", opts: ALL_FONTS }
       ] },
 
     { id: "hero", title: "Hero", intro: "The homepage hero. Use *word* for a teal highlight and a new line for a line break in the title.",
@@ -139,6 +148,21 @@
     f.appendChild(input);
     return f;
   }
+  function selectField(label, value, opts, onInput) {
+    var f = el("div", "field");
+    f.appendChild(el("label", null, esc(label)));
+    var sel = el("select");
+    opts.forEach(function (o) { var op = el("option"); op.value = o; op.textContent = o; if (o === value) op.selected = true; sel.appendChild(op); });
+    sel.addEventListener("change", function () { onInput(sel.value); });
+    f.appendChild(sel);
+    return f;
+  }
+  // Live typography preview (rendered inside the Typography panel)
+  function applyPreview() {
+    var h = document.getElementById("fp-h"), b = document.getElementById("fp-b");
+    if (h) h.style.fontFamily = "'" + (getPath(data, "fonts.display") || "Syne") + "', sans-serif";
+    if (b) b.style.fontFamily = "'" + (getPath(data, "fonts.body") || "DM Sans") + "', sans-serif";
+  }
   function boolField(label, value, onInput) {
     var f = el("div", "field");
     var wrap = el("label", "checkbox");
@@ -242,9 +266,19 @@
       var panel = el("div", "panel" + (i === 0 ? " active" : ""));
       panel.id = "panel-" + sec.id;
       if (sec.intro) panel.appendChild(el("p", "panel-intro", esc(sec.intro)));
+      var isTypo = sec.id === "typography";
       (sec.fields || []).forEach(function (fld) {
-        panel.appendChild(textField(fld.l, getPath(data, fld.p), function (v) { setPath(data, fld.p, v); }, fld.t === "area"));
+        var onIn = function (v) { setPath(data, fld.p, v); if (isTypo) applyPreview(); };
+        if (fld.t === "select") panel.appendChild(selectField(fld.l, getPath(data, fld.p), fld.opts, onIn));
+        else panel.appendChild(textField(fld.l, getPath(data, fld.p), onIn, fld.t === "area"));
       });
+      if (isTypo) {
+        panel.appendChild(el("div", "font-preview",
+          "<div class='fp-label'>Live preview</div>" +
+          "<div id='fp-h' class='fp-h'>Grow Faster. Spend Smarter.</div>" +
+          "<div id='fp-b' class='fp-b'>AstroSync blends Houston-based strategy with a world-class execution team — full-service social media marketing at honest prices. 0123456789</div>"));
+        applyPreview();
+      }
       if (sec.colors) { var cg = el("div", "colors"); sec.colors.forEach(function (c) { cg.appendChild(colorBlock(c)); }); panel.appendChild(cg); }
       (sec.lists || []).forEach(function (ls) { panel.appendChild(listEditor(ls)); });
       panels.appendChild(panel);

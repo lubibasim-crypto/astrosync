@@ -108,6 +108,18 @@
     applyTheme(n);
   }
 
+  /* ---------- Fonts (admin editable) ---------- */
+  var SERIF_FONTS = { "Fraunces": 1 };
+  function fontStack(name) {
+    return "'" + name + "', " + (SERIF_FONTS[name] ? "Georgia, 'Times New Roman', serif" : "ui-sans-serif, system-ui, -apple-system, sans-serif");
+  }
+  function applyFonts(f) {
+    if (!f) return;
+    var root = document.documentElement;
+    if (f.display) root.style.setProperty("--font-display", fontStack(f.display));
+    if (f.body) root.style.setProperty("--font-body", fontStack(f.body));
+  }
+
   /* ---------- Brand colors (admin editable) ---------- */
   function applyColors(theme) {
     if (!theme) return;
@@ -438,6 +450,7 @@
   /* ---------- Init ---------- */
   function init(C) {
     applyColors(C.theme);
+    applyFonts(C.fonts);
     var current = document.body.getAttribute("data-page") || "home";
     var refs = buildNav(C, current);
     renderAll(C);

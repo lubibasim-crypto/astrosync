@@ -15,6 +15,8 @@ window.ASTRO_DEFAULT_CONTENT = {
 
   theme: { teal: "#2ABFB0", deep: "#1B7A6E", navy: "#1A1F3C", mint: "#E0F4F2" },
 
+  fonts: { display: "Sora", body: "Inter" },
+
   hero: {
     badge: "Houston's Premier Affordable Agency",
     title: "Grow *Faster.*\nSpend *Smarter.*\nDominate Local.",

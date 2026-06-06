@@ -93,6 +93,22 @@ Shared: `assets/site.css`, `assets/site.js`, `assets/content.js`, self-hosted fo
 
 ## Deploy
 
-Any host that runs Python works (Render, Railway, Fly, a VPS, etc.). Start command:
-`python server.py` with `PORT` provided by the host and a strong `ADMIN_PASSWORD` set.
-Commit `data/content.json` to ship your edited content.
+**Process hosts (Render, Railway, Fly, a VPS):** start command `python server.py`. The host
+provides `PORT`; the server auto-binds `0.0.0.0` when `PORT` is set. Set a strong
+`ADMIN_PASSWORD` env var.
+
+**PythonAnywhere (WSGI, free, no card, persistent storage):**
+1. Open a **Bash console** → `git clone https://github.com/lubibasim-crypto/astrosync.git`
+2. **Web** tab → **Add a new web app** → **Manual configuration** → **Python 3.10**.
+3. Edit the WSGI config file it created (`/var/www/<user>_pythonanywhere_com_wsgi.py`) —
+   replace its contents with:
+   ```python
+   import sys, os
+   project = '/home/USERNAME/astrosync'          # <-- your username
+   if project not in sys.path:
+       sys.path.insert(0, project)
+   os.environ['ADMIN_PASSWORD'] = 'YOUR_STRONG_PASSWORD'
+   from wsgi_app import application
+   ```
+4. **Reload** the web app. Site is at `https://USERNAME.pythonanywhere.com`,
+   admin at `/admin.html`. Edits persist (the disk is permanent).

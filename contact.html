@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Let's Talk — AstroSync</title>
+<meta name="description" content="Book a free 30-minute audit call. No fluff, no sales pressure — just an honest look at where you are and what it would take to grow.">
+<link rel="icon" href="assets/mark.svg">
+<script>try{document.documentElement.setAttribute('data-theme',localStorage.getItem('astrosync-theme')||'dark')}catch(e){document.documentElement.setAttribute('data-theme','dark')}</script>
+<link rel="stylesheet" href="assets/site.css">
+<noscript><style>body{opacity:1!important}</style></noscript>
+</head>
+<body data-page="contact">
+
+<div class="bg-orbs" aria-hidden="true"><span></span><span></span><span></span></div>
+
+<header class="page-header">
+  <div class="container">
+    <span class="eyebrow reveal" data-bind="contact.eyebrow"></span>
+    <h1 class="reveal d1" data-rich="contact.title"></h1>
+    <p class="reveal d2" data-bind="contact.lead"></p>
+  </div>
+</header>
+
+<section class="section" style="padding-top:60px">
+  <div class="container">
+    <div class="contact-grid">
+      <div>
+        <h2 class="reveal" style="font-size:1.6rem;margin-bottom:1.4rem">Talk to a Houston strategist</h2>
+        <div data-list="contactInfos"></div>
+      </div>
+
+      <form class="form reveal d1" id="auditForm" novalidate>
+        <h3 style="font-size:1.4rem;margin-bottom:1.4rem">Get Your Free Audit</h3>
+        <div class="form-row">
+          <div class="field"><label for="fname">First Name</label><input type="text" id="fname" name="fname" placeholder="Marco" autocomplete="given-name" required></div>
+          <div class="field"><label for="lname">Last Name</label><input type="text" id="lname" name="lname" placeholder="Rodriguez" autocomplete="family-name"></div>
+        </div>
+        <div class="field"><label for="email">Business Email</label><input type="email" id="email" name="email" placeholder="marco@mybusiness.com" autocomplete="email" required></div>
+        <div class="field"><label for="business">Business Name</label><input type="text" id="business" name="business" placeholder="Fuego Taqueria"></div>
+        <div class="field"><label for="service">What Do You Need?</label>
+          <select id="service" name="service">
+            <option value="">Select a service…</option>
+            <option>Social Media Management</option>
+            <option>Paid Advertising (Meta/Google)</option>
+            <option>Content Creation</option>
+            <option>Local SEO</option>
+            <option>Full-Service Growth Package</option>
+            <option>Not sure — I need advice</option>
+          </select>
+        </div>
+        <div class="field"><label for="budget">Monthly Budget</label>
+          <select id="budget" name="budget">
+            <option value="">Select a range…</option>
+            <option>Under $500/mo</option>
+            <option>$500 – $1,000/mo</option>
+            <option>$1,000 – $2,500/mo</option>
+            <option>$2,500+/mo</option>
+          </select>
+        </div>
+        <div class="field"><label for="message">Tell Us About Your Business</label><textarea id="message" name="message" placeholder="What industry are you in, who are your customers, what's your biggest marketing challenge?"></textarea></div>
+        <button class="btn btn-submit btn-lg" type="submit">Book My Free Audit <span class="arr">→</span></button>
+        <p style="color:var(--text-muted);font-size:.78rem;margin-top:.9rem;text-align:center">No spam, ever. We reply within 24 hours.</p>
+      </form>
+    </div>
+  </div>
+</section>
+
+<script src="assets/content.js"></script>
+<script src="assets/site.js"></script>
+</body>
+</html>

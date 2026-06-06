@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+
+# Local admin secrets / sessions (never commit)
+data/admin.db
+data/*.tmp
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+
+# Local clone used during setup
+_repo/
+
+# Local agent/editor config & personal reference material (not part of the site)
+.claude/
+*.docx
+document_pdf.pdf
+preview.webp
+
+# Old single-file prototypes (kept locally, not part of the site)
+astrosync-v2.html
+astrosync-v3.html
+astrosync-v4.html

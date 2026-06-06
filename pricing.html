@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pricing — AstroSync</title>
+<meta name="description" content="Premium service, honest prices. Transparent monthly plans for Houston businesses — no hidden fees, no surprise invoices.">
+<link rel="icon" href="assets/mark.svg">
+<script>try{document.documentElement.setAttribute('data-theme',localStorage.getItem('astrosync-theme')||'dark')}catch(e){document.documentElement.setAttribute('data-theme','dark')}</script>
+<link rel="stylesheet" href="assets/site.css">
+<noscript><style>body{opacity:1!important}</style></noscript>
+</head>
+<body data-page="pricing">
+
+<div class="bg-orbs" aria-hidden="true"><span></span><span></span><span></span></div>
+
+<header class="page-header">
+  <div class="container">
+    <span class="eyebrow reveal" data-bind="pricing.eyebrow"></span>
+    <h1 class="reveal d1" data-rich="pricing.title"></h1>
+    <p class="reveal d2" data-bind="pricing.sub"></p>
+  </div>
+</header>
+
+<section class="section" style="padding-top:60px">
+  <div class="container">
+    <div class="grid g-3" data-list="pricing"></div>
+    <p class="center reveal" style="color:var(--text-muted);font-size:.9rem;margin-top:2rem" data-bind="pricing.note"></p>
+  </div>
+</section>
+
+<section class="section" style="padding-top:0">
+  <div class="container">
+    <div class="section-head center reveal">
+      <span class="eyebrow" data-bind="faq.eyebrow"></span>
+      <h2 class="section-title" data-rich="faq.title"></h2>
+    </div>
+    <div class="faq" data-list="faq"></div>
+  </div>
+</section>
+
+<section class="section cta-band" style="padding-top:0">
+  <div class="container">
+    <div class="cta-inner reveal">
+      <h2>Pick a Plan or<br>Let's Build a Custom One.</h2>
+      <p>Not sure which tier fits? Book a free audit and we'll recommend the right plan for your goals and budget.</p>
+      <a class="btn btn-white btn-lg" href="contact.html">Book My Free Audit <span class="arr">→</span></a>
+    </div>
+  </div>
+</section>
+
+<script src="assets/content.js"></script>
+<script src="assets/site.js"></script>
+</body>
+</html>

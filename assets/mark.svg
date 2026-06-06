@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 122" fill="none" role="img" aria-label="AstroSync mark">
+  <defs>
+    <linearGradient id="asMark" x1="6" y1="110" x2="194" y2="14" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#16203F"/>
+      <stop offset="0.45" stop-color="#1B7A6E"/>
+      <stop offset="1" stop-color="#2ABFB0"/>
+    </linearGradient>
+    <linearGradient id="asSheen" x1="100" y1="8" x2="100" y2="62" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#BFF3EC" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#BFF3EC" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <path d="M8 110 C40 44 74 14 100 11 C126 14 160 44 192 110 C150 74 122 60 100 60 C78 60 50 74 8 110 Z"
+        fill="url(#asMark)"/>
+  <path d="M100 11 C126 14 160 44 192 110 C158 80 130 67 100 65 C92 65 88 64 88 40 C88 22 92 12 100 11 Z"
+        fill="url(#asSheen)"/>
+</svg>

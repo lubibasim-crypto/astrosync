@@ -1,0 +1,2 @@
+# AstroSync uses only the Python standard library — no third-party packages.
+# This file exists so hosts (Render, etc.) detect a Python app.

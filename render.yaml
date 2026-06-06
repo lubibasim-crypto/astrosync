@@ -1,0 +1,12 @@
+# Render Blueprint — deploys AstroSync as a free Python web service.
+# In Render: New + → Blueprint → connect this repo → Apply.
+services:
+  - type: web
+    name: astrosync
+    runtime: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python server.py"
+    envVars:
+      - key: ADMIN_PASSWORD
+        sync: false   # set your admin password in the Render dashboard

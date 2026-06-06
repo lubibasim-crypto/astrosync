@@ -21,7 +21,8 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 CONTENT_FILE = os.path.join(DATA_DIR, "content.json")
 DB_FILE = os.path.join(DATA_DIR, "admin.db")
-HOST = os.environ.get("HOST", "127.0.0.1")
+# Locally bind to localhost; on a host (Render/Railway set PORT) bind to 0.0.0.0.
+HOST = os.environ.get("HOST") or ("0.0.0.0" if os.environ.get("PORT") else "127.0.0.1")
 PORT = int(os.environ.get("PORT", "8000"))
 TOKEN_TTL = 60 * 60 * 8  # 8 hours
 

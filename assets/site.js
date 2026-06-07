@@ -354,6 +354,7 @@
   var CONTACT_FORM =
     '<form class="form reveal d1" id="auditForm" novalidate>' +
       '<h3 style="font-size:1.4rem;margin-bottom:1.4rem">Get Your Free Audit</h3>' +
+      '<div aria-hidden="true" style="position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden"><label>Website<input type="text" id="website" name="website" tabindex="-1" autocomplete="off"></label></div>' +
       '<div class="form-row">' +
         '<div class="field"><label for="fname">First Name</label><input type="text" id="fname" name="fname" placeholder="Marco" autocomplete="given-name" required></div>' +
         '<div class="field"><label for="lname">Last Name</label><input type="text" id="lname" name="lname" placeholder="Rodriguez" autocomplete="family-name"></div>' +
@@ -582,9 +583,24 @@
       });
       if (!ok) return;
       var btn = form.querySelector(".btn-submit");
-      btn.innerHTML = "✦ Sent! We'll be in touch within 24 hours.";
-      btn.disabled = true;
-      form.querySelectorAll("input, select, textarea").forEach(function (el) { el.disabled = true; });
+      function val(id) { var el = form.querySelector("#" + id); return el ? el.value : ""; }
+      var payload = {
+        fname: val("fname"), lname: val("lname"), email: val("email"), business: val("business"),
+        service: val("service"), budget: val("budget"), message: val("message"), website: val("website")
+      };
+      var orig = btn.innerHTML;
+      btn.disabled = true; btn.innerHTML = "Sending…";
+      fetch("api/contact", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
+        .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+        .then(function () {
+          btn.innerHTML = "✦ Sent! We'll be in touch within 24 hours.";
+          form.querySelectorAll("input, select, textarea").forEach(function (el) { el.disabled = true; });
+        })
+        .catch(function () {
+          btn.disabled = false; btn.innerHTML = orig;
+          var em = (window.ASTRO_CONTENT_EMAIL) || "us";
+          alert("Sorry — your message couldn't be sent right now. Please email " + em + " directly, or try again.");
+        });
     });
     form.addEventListener("input", function (e) { var g = e.target.closest(".field"); if (g) g.classList.remove("invalid"); });
   }
@@ -607,6 +623,7 @@
     applyColors(C.theme);
     applyFonts(C.fonts);
     applyTypeScale(C.type);
+    window.ASTRO_CONTENT_EMAIL = (C.footer && C.footer.email) || "us directly";
     var current = document.body.getAttribute("data-page") || "home";
     var refs = buildNav(C, current);
     renderPage(C, current);

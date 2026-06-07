@@ -44,6 +44,9 @@
     { id: "layout", title: "Layout", custom: "layout",
       intro: "Drag to reorder sections, hide them with the eye, or remove them. Add new sections from the menu at the bottom. Pick a page with the tabs." },
 
+    { id: "submissions", title: "Submissions", custom: "submissions",
+      intro: "Enquiries sent through your live contact form. Newest first. Use Export CSV to download them all." },
+
     { id: "logo", title: "Logo", intro: "Upload your own logo image or use the bundled mark. Control where it sits in the nav and how big it is.",
       fields: [
         { p: "logo.type", l: "Logo style", t: "select", opts: ["mark", "image"], optLabels: { mark: "Bundled mark + name", image: "Uploaded image" } },
@@ -433,6 +436,74 @@
     return wrap;
   }
 
+  /* ---------- submissions inbox ---------- */
+  function submissionsEditor() {
+    var wrap = el("div", "subs-editor");
+    var bar = el("div", "subs-bar");
+    var refresh = el("button", "btn-mini", "↻ Refresh"); refresh.type = "button";
+    var exportBtn = el("button", "btn-mini", "Export CSV"); exportBtn.type = "button";
+    var count = el("span", "subs-count", "");
+    bar.appendChild(refresh); bar.appendChild(exportBtn); bar.appendChild(count);
+    wrap.appendChild(bar);
+    var listEl = el("div", "subs-list"); wrap.appendChild(listEl);
+    var current = [];
+
+    function fmtDate(ts) { try { return new Date(ts * 1000).toLocaleString(); } catch (e) { return ""; } }
+    function metaRow(card, label, v) { if (!v) return; card.appendChild(el("div", "sub-meta", "<b>" + esc(label) + ":</b> " + esc(v))); }
+    function row(s) {
+      var card = el("div", "sub-card");
+      var head = el("div", "sub-head");
+      var nm = ((s.fname || "") + " " + (s.lname || "")).trim() || "(no name)";
+      head.appendChild(el("span", "sub-name", esc(nm)));
+      head.appendChild(el("span", "sub-date", esc(fmtDate(s.ts))));
+      var del = el("button", "icon-btn del", "✕"); del.type = "button"; del.title = "Delete submission";
+      del.addEventListener("click", function () { if (confirm("Delete this submission permanently?")) doDelete(s.id); });
+      head.appendChild(del);
+      card.appendChild(head);
+      metaRow(card, "Email", s.email); metaRow(card, "Business", s.business);
+      metaRow(card, "Service", s.service); metaRow(card, "Budget", s.budget);
+      if (s.message) { var m = el("div", "sub-msg"); m.textContent = s.message; card.appendChild(m); }
+      if (s.email) { var a = el("a", "sub-reply"); a.href = "mailto:" + encodeURIComponent(s.email); a.textContent = "✉ Reply by email"; card.appendChild(a); }
+      return card;
+    }
+    function render() {
+      listEl.innerHTML = "";
+      if (!current.length) { listEl.appendChild(el("p", "panel-intro", "No submissions yet.")); count.textContent = ""; return; }
+      count.textContent = current.length + " submission" + (current.length > 1 ? "s" : "");
+      current.slice().reverse().forEach(function (s) { listEl.appendChild(row(s)); });
+    }
+    function load() {
+      listEl.innerHTML = ""; listEl.appendChild(el("p", "panel-intro", "Loading…"));
+      api("GET", "api/submissions", null, true).then(function (r) {
+        if (r.status === 401) { requireLogin(); return null; }
+        return r.ok ? r.json() : null;
+      }).then(function (j) { current = (j && j.submissions) || []; render(); })
+        .catch(function () { listEl.innerHTML = ""; listEl.appendChild(el("p", "panel-intro", "Couldn't load submissions (is the server running?).")); });
+    }
+    function doDelete(id) {
+      api("POST", "api/submission-delete", { id: id }, true).then(function (r) {
+        if (r.ok) { current = current.filter(function (s) { return s.id !== id; }); render(); toast("Deleted."); }
+        else toast("Delete failed.", true);
+      }).catch(function () { toast("Delete failed.", true); });
+    }
+    function exportCsv() {
+      if (!current.length) { toast("Nothing to export.", true); return; }
+      var cols = ["fname", "lname", "email", "business", "service", "budget", "message"];
+      function q(v) { v = v == null ? "" : String(v); return '"' + v.replace(/"/g, '""') + '"'; }
+      var header = ["date", "first name", "last name", "email", "business", "service", "budget", "message"].map(q).join(",");
+      var rows = current.slice().reverse().map(function (s) {
+        return [q(fmtDate(s.ts))].concat(cols.map(function (c) { return q(s[c]); })).join(",");
+      });
+      var blob = new Blob([header + "\n" + rows.join("\n")], { type: "text/csv" });
+      var a = el("a"); a.href = URL.createObjectURL(blob); a.download = "submissions.csv"; a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+    }
+    refresh.addEventListener("click", load);
+    exportBtn.addEventListener("click", exportCsv);
+    load();
+    return wrap;
+  }
+
   /* ---------- panels ---------- */
   function buildPanels() {
     var nav = $("#navList"); nav.innerHTML = "";
@@ -448,6 +519,7 @@
       panel.id = "panel-" + sec.id;
       if (sec.intro) panel.appendChild(el("p", "panel-intro", esc(sec.intro)));
       if (sec.custom === "layout") { panel.appendChild(layoutEditor()); panels.appendChild(panel); return; }
+      if (sec.custom === "submissions") { panel.appendChild(submissionsEditor()); panels.appendChild(panel); return; }
       var isTypo = sec.id === "typography";
       (sec.fields || []).forEach(function (fld) {
         var onIn = function (v) { setPath(data, fld.p, v); if (isTypo) applyPreview(); };

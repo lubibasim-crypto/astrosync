@@ -136,6 +136,19 @@ input,textarea,select{font-family:inherit}
 .layout-add-select{flex:1;max-width:280px;background:var(--a-panel);border:1px solid var(--a-border);border-radius:9px;padding:.6rem .8rem;color:var(--a-text);font-size:.88rem}
 .layout-add .add-btn{margin:0}
 
+/* submissions inbox */
+.subs-bar{display:flex;align-items:center;gap:.6rem;margin-bottom:1.2rem}
+.subs-count{margin-left:auto;font-size:.82rem;color:var(--a-muted)}
+.subs-list{display:flex;flex-direction:column;gap:.8rem}
+.sub-card{background:var(--a-panel);border:1px solid var(--a-border);border-radius:12px;padding:1rem 1.1rem}
+.sub-head{display:flex;align-items:center;gap:.6rem;margin-bottom:.6rem}
+.sub-name{font-weight:700;font-size:.98rem}
+.sub-date{font-size:.76rem;color:var(--a-muted);margin-left:auto}
+.sub-meta{font-size:.86rem;color:var(--a-text);margin:.15rem 0}
+.sub-meta b{color:var(--a-muted);font-weight:600}
+.sub-msg{margin:.6rem 0;padding:.7rem .9rem;background:var(--a-bg);border:1px solid var(--a-border);border-radius:8px;font-size:.88rem;white-space:pre-wrap;line-height:1.5}
+.sub-reply{display:inline-block;margin-top:.3rem;font-size:.82rem;font-weight:600;color:var(--a-teal)}
+
 @media(max-width:760px){
   .app{grid-template-columns:1fr}
   .side{position:static;height:auto;flex-direction:row;flex-wrap:wrap;align-items:center}

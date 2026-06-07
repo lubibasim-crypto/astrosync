@@ -14,6 +14,17 @@
   // Bundled, self-hosted fonts available to choose from (must match @font-face names in fonts.css)
   var ALL_FONTS = ["Space Grotesk", "Syne", "Sora", "Fraunces", "Manrope", "Plus Jakarta Sans", "Inter", "DM Sans"];
 
+  // Pages that have an editable layout / CTA band.
+  var PAGES = [["home", "Home"], ["services", "Services"], ["about", "About"], ["pricing", "Pricing"], ["work", "Work"], ["contact", "Contact"]];
+  var CTA_PAGES = PAGES.filter(function (p) { return p[0] !== "contact"; });
+  var ctaFields = [];
+  CTA_PAGES.forEach(function (pg) {
+    ctaFields.push({ p: "ctas." + pg[0] + ".title", l: pg[1] + " — title", t: "area" });
+    ctaFields.push({ p: "ctas." + pg[0] + ".text", l: pg[1] + " — text", t: "area" });
+    ctaFields.push({ p: "ctas." + pg[0] + ".button", l: pg[1] + " — button label" });
+    ctaFields.push({ p: "ctas." + pg[0] + ".href", l: pg[1] + " — button link" });
+  });
+
   /* ---------- schema ---------- */
   var SCHEMA = [
     { id: "brand", title: "Brand", intro: "Your agency name as shown in the nav and footer.",
@@ -30,10 +41,24 @@
         { p: "theme.mint", l: "Mint (light accent)" }
       ] },
 
-    { id: "typography", title: "Typography", intro: "Choose the fonts for headings and body text. All fonts are bundled and work offline — changes apply across the whole site after you Save.",
+    { id: "layout", title: "Layout", custom: "layout",
+      intro: "Drag to reorder sections, hide them with the eye, or remove them. Add new sections from the menu at the bottom. Pick a page with the tabs." },
+
+    { id: "logo", title: "Logo", intro: "Upload your own logo image or use the bundled mark. Control where it sits in the nav and how big it is.",
+      fields: [
+        { p: "logo.type", l: "Logo style", t: "select", opts: ["mark", "image"], optLabels: { mark: "Bundled mark + name", image: "Uploaded image" } },
+        { p: "logo.src", l: "Logo image (PNG, SVG, JPG — max 3MB)", t: "upload" },
+        { p: "logo.height", l: "Logo height", t: "range", min: 20, max: 80, step: 1, unit: "px" },
+        { p: "logo.position", l: "Placement in nav bar", t: "select", opts: ["left", "center", "right"] },
+        { p: "logo.showName", l: "Show brand name text next to the logo", t: "bool" }
+      ] },
+
+    { id: "typography", title: "Typography", intro: "Choose the fonts and overall sizing. All fonts are bundled and work offline — changes apply across the whole site after you Save.",
       fields: [
         { p: "fonts.display", l: "Display font (headings & logo)", t: "select", opts: ALL_FONTS },
-        { p: "fonts.body", l: "Body font (paragraphs & UI)", t: "select", opts: ALL_FONTS }
+        { p: "fonts.body", l: "Body font (paragraphs & UI)", t: "select", opts: ALL_FONTS },
+        { p: "type.baseScale", l: "Overall text size", t: "range", min: 0.85, max: 1.3, step: 0.01, unit: "×" },
+        { p: "type.headingScale", l: "Heading size", t: "range", min: 0.8, max: 1.5, step: 0.01, unit: "×" }
       ] },
 
     { id: "hero", title: "Hero", intro: "The homepage hero. Use *word* for a teal highlight and a new line for a line break in the title.",
@@ -101,9 +126,8 @@
         { p: "contact.eyebrow", l: "Eyebrow" }, { p: "contact.title", l: "Title", t: "area" }, { p: "contact.lead", l: "Lead", t: "area" }
       ], lists: [{ p: "contact.infos", l: "Contact info rows", item: [{ k: "icon", l: "Icon (emoji)" }, { k: "title", l: "Title" }, { k: "sub", l: "Subtitle" }] }] },
 
-    { id: "cta", title: "CTA Band", fields: [
-        { p: "cta.title", l: "Title", t: "area" }, { p: "cta.text", l: "Text", t: "area" }, { p: "cta.button", l: "Button label" }, { p: "cta.href", l: "Button link" }
-      ] },
+    { id: "ctas", title: "CTA Bands", intro: "The call-to-action band near the bottom of each page. Use *word* for a teal highlight and a new line for a line break.",
+      fields: ctaFields },
 
     { id: "footer", title: "Footer", fields: [
         { p: "footer.tagline", l: "Tagline", t: "area" }, { p: "footer.email", l: "Email" }, { p: "footer.phone", l: "Phone" }, { p: "footer.copyright", l: "Copyright line" }
@@ -136,6 +160,40 @@
     if (auth) { var tk = sessionStorage.getItem(TOKEN_KEY); if (tk) opt.headers["Authorization"] = "Bearer " + tk; }
     return fetch(path, opt);
   }
+  // Upload an image (data URL) to the backend; resolves to the stored path.
+  function uploadImage(name, dataUrl) {
+    return new Promise(function (resolve, reject) {
+      api("POST", "api/upload", { name: name, dataUrl: dataUrl }, true).then(function (r) {
+        if (r.status === 401) { reject("Session expired — log in again."); return; }
+        return r.json().then(function (j) {
+          if (r.ok && j.src) resolve(j.src); else reject(j.error || "Upload failed.");
+        });
+      }).catch(function () { reject(null); });
+    });
+  }
+
+  /* ---------- drag-and-drop reordering (handle-based) ---------- */
+  function enableDnD(container, arr, refresh) {
+    var from = null;
+    var rows = container.querySelectorAll(":scope > [data-di]");
+    rows.forEach(function (row) {
+      var idx = +row.getAttribute("data-di");
+      var handle = row.querySelector(".drag-handle");
+      if (handle) {
+        handle.setAttribute("draggable", "true");
+        handle.addEventListener("dragstart", function (e) { from = idx; row.classList.add("dragging"); e.dataTransfer.effectAllowed = "move"; try { e.dataTransfer.setData("text/plain", ""); } catch (x) {} });
+        handle.addEventListener("dragend", function () { from = null; row.classList.remove("dragging"); });
+      }
+      row.addEventListener("dragover", function (e) { if (from === null) return; e.preventDefault(); row.classList.add("drop-target"); });
+      row.addEventListener("dragleave", function () { row.classList.remove("drop-target"); });
+      row.addEventListener("drop", function (e) {
+        if (from === null) return;
+        e.preventDefault(); row.classList.remove("drop-target");
+        var to = idx;
+        if (from !== to) { var it = arr.splice(from, 1)[0]; arr.splice(to, 0, it); refresh(); }
+      });
+    });
+  }
 
   /* ---------- field builders ---------- */
   function textField(label, value, onInput, area) {
@@ -148,13 +206,64 @@
     f.appendChild(input);
     return f;
   }
-  function selectField(label, value, opts, onInput) {
+  function selectField(label, value, opts, onInput, labels) {
     var f = el("div", "field");
     f.appendChild(el("label", null, esc(label)));
     var sel = el("select");
-    opts.forEach(function (o) { var op = el("option"); op.value = o; op.textContent = o; if (o === value) op.selected = true; sel.appendChild(op); });
+    opts.forEach(function (o) { var op = el("option"); op.value = o; op.textContent = (labels && labels[o]) || o; if (o === value) op.selected = true; sel.appendChild(op); });
     sel.addEventListener("change", function () { onInput(sel.value); });
     f.appendChild(sel);
+    return f;
+  }
+  function rangeField(label, value, min, max, step, unit, onInput) {
+    var f = el("div", "field");
+    var lab = el("label", null, esc(label));
+    var badge = el("span", "range-val");
+    function fmt(v) { return (step < 1 ? (+v).toFixed(2) : v) + (unit || ""); }
+    f.appendChild(lab);
+    var row = el("div", "range-row");
+    var input = el("input"); input.type = "range"; input.min = min; input.max = max; input.step = step;
+    input.value = (value == null ? min : value);
+    badge.textContent = fmt(input.value);
+    input.addEventListener("input", function () { badge.textContent = fmt(input.value); onInput(parseFloat(input.value)); });
+    row.appendChild(input); row.appendChild(badge);
+    f.appendChild(row);
+    return f;
+  }
+  function uploadField(label, value, onUploaded) {
+    var f = el("div", "field");
+    f.appendChild(el("label", null, esc(label)));
+    var box = el("div", "upload-box");
+    var preview = el("div", "upload-preview");
+    function paint() {
+      preview.innerHTML = value ? '<img src="' + esc(value) + '" alt="logo preview">' : '<span class="upload-empty">No image uploaded</span>';
+    }
+    paint();
+    var controls = el("div", "upload-controls");
+    var pick = el("button", "btn-mini", "Choose image…"); pick.type = "button";
+    var clear = el("button", "btn-mini ghost", "Remove"); clear.type = "button";
+    var file = el("input"); file.type = "file"; file.accept = "image/png,image/jpeg,image/svg+xml,image/webp,image/gif"; file.className = "hidden";
+    pick.addEventListener("click", function () { file.click(); });
+    clear.addEventListener("click", function () { value = ""; onUploaded(""); paint(); });
+    file.addEventListener("change", function () {
+      var fl = file.files[0]; if (!fl) return;
+      if (fl.size > 3 * 1024 * 1024) { toast("Image too large (max 3MB).", true); file.value = ""; return; }
+      var fr = new FileReader();
+      fr.onload = function () {
+        uploadImage(fl.name, fr.result).then(function (src) {
+          value = src; onUploaded(src); paint(); toast("Logo uploaded. Save to apply.");
+        }).catch(function (msg) {
+          // Offline / no server: fall back to embedding the data URL directly.
+          value = fr.result; onUploaded(fr.result); paint();
+          toast(msg || "No server — embedded image locally. Use Export to keep it.", true);
+        });
+        file.value = "";
+      };
+      fr.readAsDataURL(fl);
+    });
+    controls.appendChild(pick); controls.appendChild(clear);
+    box.appendChild(preview); box.appendChild(controls); box.appendChild(file);
+    f.appendChild(box);
     return f;
   }
   // Live typography preview (rendered inside the Typography panel)
@@ -215,6 +324,7 @@
         renderList();
       });
       listEl.appendChild(add);
+      enableDnD(listEl, a, renderList);
     }
     renderList();
     return container;
@@ -222,6 +332,8 @@
 
   function simpleRow(a, idx, refresh) {
     var row = el("div", "simple-row");
+    row.setAttribute("data-di", idx);
+    row.appendChild(el("span", "drag-handle", "⠿"));
     var input = el("input"); input.type = "text"; input.value = a[idx];
     input.addEventListener("input", function () { a[idx] = input.value; });
     var del = el("button", "icon-btn del", "✕"); del.type = "button";
@@ -232,7 +344,9 @@
 
   function itemCard(spec, a, idx, refresh) {
     var card = el("div", "list-item");
+    card.setAttribute("data-di", idx);
     var head = el("div", "list-item-head");
+    head.appendChild(el("span", "drag-handle", "⠿"));
     head.appendChild(el("span", "tag", "#" + (idx + 1)));
     var up = el("button", "icon-btn", "↑"); up.type = "button";
     var down = el("button", "icon-btn", "↓"); down.type = "button";
@@ -252,6 +366,73 @@
     return card;
   }
 
+  /* ---------- layout (section) editor ---------- */
+  function ensureSections() {
+    if (!data.sections || typeof data.sections !== "object") data.sections = clone(DEFAULTS.sections || {});
+    PAGES.forEach(function (pg) {
+      if (!Array.isArray(data.sections[pg[0]])) data.sections[pg[0]] = clone((DEFAULTS.sections && DEFAULTS.sections[pg[0]]) || []);
+    });
+  }
+  function typeLabel(t) {
+    var f = (window.ASTRO_SECTION_TYPES || []).filter(function (x) { return x.type === t; })[0];
+    return f ? f.label : t;
+  }
+  var layoutPage = "home";
+  function layoutEditor() {
+    ensureSections();
+    var wrap = el("div", "layout-editor");
+    var tabs = el("div", "page-tabs");
+    PAGES.forEach(function (pg) {
+      var b = el("button", "page-tab" + (pg[0] === layoutPage ? " active" : ""), esc(pg[1])); b.type = "button";
+      b.addEventListener("click", function () { layoutPage = pg[0]; redraw(); });
+      tabs.appendChild(b);
+    });
+    wrap.appendChild(tabs);
+    var listEl = el("div", "layout-list"); wrap.appendChild(listEl);
+    var addBar = el("div", "layout-add"); wrap.appendChild(addBar);
+
+    function arr() { ensureSections(); return data.sections[layoutPage]; }
+    function redraw() {
+      tabs.querySelectorAll(".page-tab").forEach(function (b, i) { b.classList.toggle("active", PAGES[i][0] === layoutPage); });
+      renderList();
+    }
+    function renderList() {
+      var a = arr(); listEl.innerHTML = "";
+      a.forEach(function (sec, idx) {
+        var row = el("div", "layout-row" + (sec.hidden ? " is-hidden" : ""));
+        row.setAttribute("data-di", idx);
+        row.appendChild(el("span", "drag-handle", "⠿"));
+        row.appendChild(el("span", "layout-name", esc(typeLabel(sec.type))));
+        row.appendChild(el("span", "layout-spacer"));
+        var eye = el("button", "icon-btn", sec.hidden ? "🚫" : "👁"); eye.type = "button";
+        eye.title = sec.hidden ? "Hidden — click to show" : "Visible — click to hide";
+        eye.addEventListener("click", function () { sec.hidden = !sec.hidden; renderList(); });
+        var del = el("button", "icon-btn del", "✕"); del.type = "button"; del.title = "Remove section";
+        del.addEventListener("click", function () { a.splice(idx, 1); renderList(); });
+        row.appendChild(eye); row.appendChild(del);
+        listEl.appendChild(row);
+      });
+      enableDnD(listEl, a, renderList);
+      renderAddBar();
+    }
+    function renderAddBar() {
+      addBar.innerHTML = "";
+      var sel = el("select", "layout-add-select");
+      (window.ASTRO_SECTION_TYPES || []).forEach(function (st) {
+        var op = el("option"); op.value = st.type; op.textContent = st.label; sel.appendChild(op);
+      });
+      var add = el("button", "add-btn", "+ Add section"); add.type = "button";
+      add.addEventListener("click", function () {
+        var t = sel.value;
+        arr().push({ id: t + "-" + Date.now(), type: t, opt: {} });
+        renderList();
+      });
+      addBar.appendChild(sel); addBar.appendChild(add);
+    }
+    redraw();
+    return wrap;
+  }
+
   /* ---------- panels ---------- */
   function buildPanels() {
     var nav = $("#navList"); nav.innerHTML = "";
@@ -266,10 +447,14 @@
       var panel = el("div", "panel" + (i === 0 ? " active" : ""));
       panel.id = "panel-" + sec.id;
       if (sec.intro) panel.appendChild(el("p", "panel-intro", esc(sec.intro)));
+      if (sec.custom === "layout") { panel.appendChild(layoutEditor()); panels.appendChild(panel); return; }
       var isTypo = sec.id === "typography";
       (sec.fields || []).forEach(function (fld) {
         var onIn = function (v) { setPath(data, fld.p, v); if (isTypo) applyPreview(); };
-        if (fld.t === "select") panel.appendChild(selectField(fld.l, getPath(data, fld.p), fld.opts, onIn));
+        if (fld.t === "select") panel.appendChild(selectField(fld.l, getPath(data, fld.p), fld.opts, onIn, fld.optLabels));
+        else if (fld.t === "range") panel.appendChild(rangeField(fld.l, getPath(data, fld.p), fld.min, fld.max, fld.step, fld.unit, onIn));
+        else if (fld.t === "upload") panel.appendChild(uploadField(fld.l, getPath(data, fld.p), onIn));
+        else if (fld.t === "bool") panel.appendChild(boolField(fld.l, getPath(data, fld.p), onIn));
         else panel.appendChild(textField(fld.l, getPath(data, fld.p), onIn, fld.t === "area"));
       });
       if (isTypo) {

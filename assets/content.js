@@ -17,6 +17,12 @@ window.ASTRO_DEFAULT_CONTENT = {
 
   fonts: { display: "Sora", body: "Inter" },
 
+  // Global type scale — multipliers applied site-wide (1 = default).
+  type: { baseScale: 1, headingScale: 1 },
+
+  // Logo: "mark" = bundled SVG mark + wordmark; "image" = uploaded file.
+  logo: { type: "mark", src: "", height: 34, position: "left", showName: true },
+
   hero: {
     badge: "Houston's Premier Affordable Agency",
     title: "Grow *Faster.*\nSpend *Smarter.*\nDominate Local.",
@@ -176,5 +182,84 @@ window.ASTRO_DEFAULT_CONTENT = {
     { network: "facebook", href: "#" },
     { network: "tiktok", href: "#" },
     { network: "linkedin", href: "#" }
-  ]
+  ],
+
+  // Per-page CTA bands (the home one also lives in `cta` above for back-compat).
+  ctas: {
+    home: { title: "Houston's Under-Dog Agency\nIs Now Open for Business.", text: "Don't let national agencies keep ignoring your market. AstroSync is built for businesses like yours — and we're hungry to prove it.", button: "Start Growing Today", href: "contact.html" },
+    services: { title: "Not Sure Which Service\nYou Need?", text: "Book a free 30-minute audit and we'll map out exactly what would move the needle for your business.", button: "Book My Free Audit", href: "contact.html" },
+    about: { title: "Let's Build Something\nWorth Talking About.", text: "Meet the team behind the work. Book a free audit and see exactly how the dual-team model would work for you.", button: "Get In Touch", href: "contact.html" },
+    pricing: { title: "Pick a Plan or\nLet's Build a Custom One.", text: "Not sure which tier fits? Book a free audit and we'll recommend the right plan for your goals and budget.", button: "Book My Free Audit", href: "contact.html" },
+    work: { title: "Your Business Could Be\nThe Next Case Study.", text: "Book a free audit and we'll show you exactly where the growth is hiding in your market.", button: "Start Growing Today", href: "contact.html" }
+  },
+
+  // Page layouts — ordered, editable section instances (Shopify-style).
+  // type = section renderer; hidden = skip render; opt = per-placement options.
+  sections: {
+    home: [
+      { id: "home-hero", type: "hero" },
+      { id: "home-ticker", type: "ticker" },
+      { id: "home-why", type: "why", opt: { head: true } },
+      { id: "home-services", type: "services", opt: { variant: "teaser", limit: 3, head: true, cta: { label: "View All Services", href: "services.html" } } },
+      { id: "home-results", type: "results", opt: { cols: 4, head: true, center: true, cta: { label: "See Our Work", href: "work.html" } } },
+      { id: "home-testimonials", type: "testimonials", opt: { limit: 3, head: true } },
+      { id: "home-cta", type: "cta", opt: { ref: "home" } }
+    ],
+    services: [
+      { id: "services-header", type: "pageHeader", opt: { ref: "services" } },
+      { id: "services-grid", type: "services", opt: { variant: "full", topPad: 60 } },
+      { id: "services-process", type: "process", opt: { head: true } },
+      { id: "services-cta", type: "cta", opt: { ref: "services" } }
+    ],
+    about: [
+      { id: "about-header", type: "pageHeader", opt: { ref: "about" } },
+      { id: "about-why", type: "why", opt: { topPad: 60 } },
+      { id: "about-teams", type: "teams", opt: { head: true } },
+      { id: "about-values", type: "values", opt: { head: true } },
+      { id: "about-cta", type: "cta", opt: { ref: "about" } }
+    ],
+    pricing: [
+      { id: "pricing-header", type: "pageHeader", opt: { ref: "pricing" } },
+      { id: "pricing-grid", type: "pricing", opt: { topPad: 60 } },
+      { id: "pricing-faq", type: "faq", opt: { head: true, center: true } },
+      { id: "pricing-cta", type: "cta", opt: { ref: "pricing" } }
+    ],
+    work: [
+      { id: "work-header", type: "pageHeader", opt: { ref: "work" } },
+      { id: "work-results", type: "results", opt: { cols: 2, topPad: 60 } },
+      { id: "work-testimonials", type: "testimonials", opt: { head: true } },
+      { id: "work-cta", type: "cta", opt: { ref: "work" } }
+    ],
+    contact: [
+      { id: "contact-header", type: "pageHeader", opt: { ref: "contact" } },
+      { id: "contact-body", type: "contact", opt: { topPad: 60 } }
+    ]
+  }
 };
+
+// Page-header content sources by ref (eyebrow / title / sub paths).
+window.ASTRO_PAGEHEAD = {
+  services: { eyebrow: "services.eyebrow", title: "services.title", sub: "services.sub" },
+  about:    { eyebrow: "about.eyebrow",    title: "about.title",    sub: "about.lead" },
+  pricing:  { eyebrow: "pricing.eyebrow",  title: "pricing.title",  sub: "pricing.sub" },
+  work:     { eyebrow: "results.eyebrow",  title: "results.title",  sub: "results.sub" },
+  contact:  { eyebrow: "contact.eyebrow",  title: "contact.title",  sub: "contact.lead" }
+};
+
+// Catalog of section types that can be added in the admin Layout panel.
+window.ASTRO_SECTION_TYPES = [
+  { type: "hero", label: "Hero (home banner)" },
+  { type: "ticker", label: "Scrolling ticker" },
+  { type: "pageHeader", label: "Page header" },
+  { type: "why", label: "Why-us cards" },
+  { type: "services", label: "Services grid" },
+  { type: "process", label: "Process steps" },
+  { type: "results", label: "Results / case stats" },
+  { type: "testimonials", label: "Testimonials" },
+  { type: "pricing", label: "Pricing plans" },
+  { type: "faq", label: "FAQ" },
+  { type: "teams", label: "Teams (dual-team)" },
+  { type: "values", label: "Values list" },
+  { type: "contact", label: "Contact form + info" },
+  { type: "cta", label: "CTA band" }
+];

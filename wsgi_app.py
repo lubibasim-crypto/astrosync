@@ -83,4 +83,15 @@ def application(environ, start_response):
             return _json(start_response, {"token": server.make_token(), "expiresIn": server.TOKEN_TTL})
         return _json(start_response, {"error": "invalid password"}, "401 Unauthorized")
 
+    if path == "/api/upload" and method == "POST":
+        auth = environ.get("HTTP_AUTHORIZATION", "")
+        token = auth[7:] if auth.startswith("Bearer ") else ""
+        if not server.valid_token(token):
+            return _json(start_response, {"error": "unauthorized"}, "401 Unauthorized")
+        data = _read_json(environ) or {}
+        src = server.save_upload(data.get("name", ""), data.get("dataUrl", ""))
+        if not src:
+            return _json(start_response, {"error": "invalid image (png/jpg/svg/webp/gif, max 3MB)"}, "400 Bad Request")
+        return _json(start_response, {"ok": True, "src": src})
+
     return _serve_static(path, start_response)

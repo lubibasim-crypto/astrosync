@@ -120,6 +120,14 @@
     if (f.body) root.style.setProperty("--font-body", fontStack(f.body));
   }
 
+  /* ---------- Global type scale (admin editable) ---------- */
+  function applyTypeScale(t) {
+    if (!t) return;
+    var root = document.documentElement;
+    if (t.baseScale) root.style.setProperty("--type-base-scale", t.baseScale);
+    if (t.headingScale) root.style.setProperty("--type-heading-scale", t.headingScale);
+  }
+
   /* ---------- Brand colors (admin editable) ---------- */
   function applyColors(theme) {
     if (!theme) return;
@@ -142,12 +150,17 @@
   function brandHTML(C) {
     var name = (C.brand && C.brand.name) || "ASTROSYNC";
     var accent = (C.brand && C.brand.accent) || "";
+    var lg = C.logo || {};
+    var h = (+lg.height) || 34;
     var html = esc(name);
     if (accent && name.indexOf(accent) >= 0) {
       html = esc(name.replace(accent, "")) + '<span class="grad-text">' + esc(accent) + "</span>";
     }
-    return '<img class="brand-mark" src="' + MARK + '" alt="">' +
-           '<span class="brand-name">' + html + "</span>";
+    var img = (lg.type === "image" && lg.src)
+      ? '<img class="brand-mark brand-logo-img" src="' + esc(lg.src) + '" alt="' + esc(name) + '" style="height:' + h + 'px;width:auto">'
+      : '<img class="brand-mark" src="' + MARK + '" alt="" style="height:' + h + 'px;width:auto">';
+    var nameEl = (lg.showName === false) ? "" : '<span class="brand-name">' + html + "</span>";
+    return img + nameEl;
   }
 
   function buildNav(C, current) {
@@ -156,8 +169,9 @@
     var links = LINKS.map(function (l) {
       return '<a href="' + l.href + '"' + (l.page === current ? ' class="active"' : "") + ">" + l.label + "</a>";
     }).join("");
+    var pos = (C.logo && C.logo.position) || "left";
     nav.innerHTML =
-      '<div class="container nav-inner">' +
+      '<div class="container nav-inner logo-' + pos + '">' +
         '<a class="brand" href="index.html" aria-label="AstroSync home">' + brandHTML(C) + "</a>" +
         '<div class="nav-links">' + links + "</div>" +
         '<div class="nav-actions">' +
@@ -336,6 +350,147 @@
     }
   };
 
+  /* ---------- Page-level section templates (Shopify-style layout) ---------- */
+  var CONTACT_FORM =
+    '<form class="form reveal d1" id="auditForm" novalidate>' +
+      '<h3 style="font-size:1.4rem;margin-bottom:1.4rem">Get Your Free Audit</h3>' +
+      '<div class="form-row">' +
+        '<div class="field"><label for="fname">First Name</label><input type="text" id="fname" name="fname" placeholder="Marco" autocomplete="given-name" required></div>' +
+        '<div class="field"><label for="lname">Last Name</label><input type="text" id="lname" name="lname" placeholder="Rodriguez" autocomplete="family-name"></div>' +
+      "</div>" +
+      '<div class="field"><label for="email">Business Email</label><input type="email" id="email" name="email" placeholder="marco@mybusiness.com" autocomplete="email" required></div>' +
+      '<div class="field"><label for="business">Business Name</label><input type="text" id="business" name="business" placeholder="Fuego Taqueria"></div>' +
+      '<div class="field"><label for="service">What Do You Need?</label>' +
+        '<select id="service" name="service"><option value="">Select a service…</option>' +
+        '<option>Social Media Management</option><option>Paid Advertising (Meta/Google)</option>' +
+        '<option>Content Creation</option><option>Local SEO</option>' +
+        '<option>Full-Service Growth Package</option><option>Not sure — I need advice</option></select>' +
+      "</div>" +
+      '<div class="field"><label for="budget">Monthly Budget</label>' +
+        '<select id="budget" name="budget"><option value="">Select a range…</option>' +
+        '<option>Under $500/mo</option><option>$500 – $1,000/mo</option>' +
+        '<option>$1,000 – $2,500/mo</option><option>$2,500+/mo</option></select>' +
+      "</div>" +
+      '<div class="field"><label for="message">Tell Us About Your Business</label><textarea id="message" name="message" placeholder="What industry are you in, who are your customers, what\'s your biggest marketing challenge?"></textarea></div>' +
+      '<button class="btn btn-submit btn-lg" type="submit">Book My Free Audit <span class="arr">→</span></button>' +
+      '<p style="color:var(--text-muted);font-size:.78rem;margin-top:.9rem;text-align:center">No spam, ever. We reply within 24 hours.</p>' +
+    "</form>";
+
+  function headBlock(C, eb, ti, su, center) {
+    var e = eb ? get(C, eb) : null, t = ti ? get(C, ti) : null, s = su ? get(C, su) : null;
+    var h = '<div class="section-head' + (center ? " center" : "") + ' reveal">';
+    if (e != null && e !== "") h += '<span class="eyebrow">' + esc(e) + "</span>";
+    if (t != null) h += '<h2 class="section-title">' + rich(t) + "</h2>";
+    if (s != null && s !== "") h += '<p class="section-sub">' + esc(s) + "</p>";
+    return h + "</div>";
+  }
+  function sectionWrap(inner, extraCls) {
+    return '<section class="section' + (extraCls ? " " + extraCls : "") + '"><div class="container">' + inner + "</div></section>";
+  }
+  function linkBtn(opt) {
+    if (!opt || !opt.cta) return "";
+    return '<div style="text-align:center;margin-top:2.4rem" class="reveal"><a class="btn btn-outline" href="' +
+      esc(opt.cta.href) + '">' + esc(opt.cta.label) + ' <span class="arr">→</span></a></div>';
+  }
+  function ctaData(C, ref) {
+    return (C.ctas && C.ctas[ref]) || (ref === "home" ? C.cta : null) || C.cta || {};
+  }
+
+  var SECTIONS = {
+    hero: function (C) {
+      return '<header class="hero"><div class="container"><div class="hero-grid"><div>' +
+        '<div class="badge reveal"><span class="dot"></span><span>' + esc(get(C, "hero.badge")) + "</span></div>" +
+        '<h1 class="reveal d1">' + rich(get(C, "hero.title")) + "</h1>" +
+        '<p class="lead reveal d2">' + esc(get(C, "hero.lead")) + "</p>" +
+        '<div class="hero-ctas reveal d3">' +
+          '<a class="btn btn-primary btn-lg" href="' + esc(get(C, "hero.ctaPrimary.href")) + '"><span>' + esc(get(C, "hero.ctaPrimary.label")) + '</span> <span class="arr">→</span></a>' +
+          '<a class="btn btn-outline btn-lg" href="' + esc(get(C, "hero.ctaSecondary.href")) + '"><span>' + esc(get(C, "hero.ctaSecondary.label")) + "</span></a>" +
+        "</div>" +
+        '<div class="hero-stats">' + RENDER.herostats(C) + "</div>" +
+        "</div>" +
+        '<div class="sphere-stage reveal d2" id="sphere" aria-hidden="true"></div>' +
+        "</div></div></header>";
+    },
+    ticker: function (C) {
+      return '<div class="ticker" aria-hidden="true">' + RENDER.ticker(C) + "</div>";
+    },
+    pageHeader: function (C, opt) {
+      var r = (window.ASTRO_PAGEHEAD || {})[(opt && opt.ref)] || {};
+      var e = r.eyebrow ? get(C, r.eyebrow) : null, t = r.title ? get(C, r.title) : null, s = r.sub ? get(C, r.sub) : null;
+      return '<header class="page-header"><div class="container">' +
+        (e != null ? '<span class="eyebrow reveal">' + esc(e) + "</span>" : "") +
+        (t != null ? '<h1 class="reveal d1">' + rich(t) + "</h1>" : "") +
+        (s != null ? '<p class="reveal d2">' + esc(s) + "</p>" : "") +
+        "</div></header>";
+    },
+    why: function (C, opt) {
+      var head = (opt && opt.head) ? headBlock(C, "why.eyebrow", "why.title", "why.sub") : "";
+      return sectionWrap(head + '<div class="grid g-4">' + RENDER.why(C) + "</div>");
+    },
+    services: function (C, opt) {
+      opt = opt || {};
+      var head = opt.head ? headBlock(C, "services.eyebrow", "services.title", null) : "";
+      return sectionWrap(head + '<div class="grid g-3">' +
+        RENDER.services(C, { limit: opt.limit, variant: opt.variant || "full" }) + "</div>" + linkBtn(opt));
+    },
+    process: function (C, opt) {
+      var head = (opt && opt.head) ? headBlock(C, "process.eyebrow", "process.title", "process.sub") : "";
+      return sectionWrap(head + '<div class="steps">' + RENDER.process(C) + "</div>");
+    },
+    results: function (C, opt) {
+      opt = opt || {};
+      var head = opt.head ? headBlock(C, "results.eyebrow", "results.title", null, opt.center) : "";
+      var cols = (+opt.cols === 2) ? "g-2" : "g-4";
+      return sectionWrap(head + '<div class="grid ' + cols + '">' + RENDER.results(C) + "</div>" + linkBtn(opt));
+    },
+    testimonials: function (C, opt) {
+      opt = opt || {};
+      var head = opt.head ? headBlock(C, "testimonials.eyebrow", "testimonials.title", null) : "";
+      return sectionWrap(head + '<div class="grid g-3">' + RENDER.testimonials(C, { limit: opt.limit }) + "</div>");
+    },
+    pricing: function (C) {
+      var note = get(C, "pricing.note");
+      var noteHtml = (note != null && note !== "") ? '<p class="center reveal" style="color:var(--text-muted);font-size:.9rem;margin-top:2rem">' + esc(note) + "</p>" : "";
+      return sectionWrap('<div class="grid g-3">' + RENDER.pricing(C) + "</div>" + noteHtml);
+    },
+    faq: function (C, opt) {
+      var head = (opt && opt.head) ? headBlock(C, "faq.eyebrow", "faq.title", null, opt && opt.center) : "";
+      return sectionWrap(head + '<div class="faq">' + RENDER.faq(C) + "</div>");
+    },
+    teams: function (C, opt) {
+      var head = (opt && opt.head) ? headBlock(C, "about.teamEyebrow", "about.teamTitle", "about.teamSub") : "";
+      return sectionWrap(head + '<div class="split">' + RENDER.teams(C) + "</div>");
+    },
+    values: function (C, opt) {
+      var head = (opt && opt.head) ? headBlock(C, "about.valuesEyebrow", "about.valuesTitle", null) : "";
+      return sectionWrap(head + '<div style="max-width:840px">' + RENDER.values(C) + "</div>");
+    },
+    contact: function (C) {
+      return sectionWrap('<div class="contact-grid"><div>' +
+        '<h2 class="reveal" style="font-size:1.6rem;margin-bottom:1.4rem">Talk to a Houston strategist</h2>' +
+        "<div>" + RENDER.contactInfos(C) + "</div></div>" + CONTACT_FORM + "</div>");
+    },
+    cta: function (C, opt) {
+      var c = ctaData(C, opt && opt.ref);
+      return '<section class="section cta-band"><div class="container"><div class="cta-inner reveal">' +
+        "<h2>" + rich(c.title) + "</h2><p>" + esc(c.text) + "</p>" +
+        '<a class="btn btn-white btn-lg" href="' + esc(c.href || "contact.html") + '"><span>' + esc(c.button) + '</span> <span class="arr">→</span></a>' +
+        "</div></div></section>";
+    }
+  };
+
+  function renderPage(C, page) {
+    var mount = document.getElementById("page");
+    if (!mount) return renderAll(C); // legacy fallback for un-migrated pages
+    var layout = (C.sections && C.sections[page]) || (DEFAULTS.sections && DEFAULTS.sections[page]) || [];
+    mount.innerHTML = layout
+      .filter(function (s) { return s && !s.hidden && SECTIONS[s.type]; })
+      .map(function (s) { return SECTIONS[s.type](C, s.opt || {}); })
+      .join("");
+    var sp = document.getElementById("sphere");
+    if (sp) buildSphere(C, sp);
+  }
+
   function renderAll(C) {
     // simple text + rich bindings
     document.querySelectorAll("[data-bind]").forEach(function (el) {
@@ -451,9 +606,10 @@
   function init(C) {
     applyColors(C.theme);
     applyFonts(C.fonts);
+    applyTypeScale(C.type);
     var current = document.body.getAttribute("data-page") || "home";
     var refs = buildNav(C, current);
-    renderAll(C);
+    renderPage(C, current);
     buildFooter(C);
     wireNav(refs);
     wireReveals();

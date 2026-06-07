@@ -14,11 +14,12 @@ Run:
 
 Default admin password is "astrosync" (change it — see README).
 """
-import os, json, sqlite3, hmac, hashlib, base64, time, secrets, tempfile, mimetypes
+import os, re, json, sqlite3, hmac, hashlib, base64, time, secrets, tempfile, mimetypes
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
+UPLOAD_DIR = os.path.join(DATA_DIR, "uploads")
 CONTENT_FILE = os.path.join(DATA_DIR, "content.json")
 DB_FILE = os.path.join(DATA_DIR, "admin.db")
 # Locally bind to localhost; on a host (Render/Railway set PORT) bind to 0.0.0.0.
@@ -115,6 +116,42 @@ def write_content(obj):
     os.replace(tmp, CONTENT_FILE)  # atomic
 
 
+# Allowed image uploads (mime -> extension) and a 3 MB cap.
+ALLOWED_IMG = {
+    "image/png": ".png", "image/jpeg": ".jpg", "image/svg+xml": ".svg",
+    "image/webp": ".webp", "image/gif": ".gif",
+}
+MAX_UPLOAD = 3 * 1024 * 1024
+
+
+def save_upload(name, data_url):
+    """Decode a base64 data URL, validate, and store under data/uploads/.
+
+    Returns the public relative path (e.g. "data/uploads/logo-ab12cd34.png")
+    or None if the payload is invalid / disallowed / too large.
+    """
+    if not isinstance(data_url, str) or not data_url.startswith("data:"):
+        return None
+    header, _, b64 = data_url.partition(",")
+    mime = header[5:].split(";")[0].strip().lower()
+    ext = ALLOWED_IMG.get(mime)
+    if not ext or not b64:
+        return None
+    try:
+        raw = base64.b64decode(b64, validate=True)
+    except Exception:
+        return None
+    if not raw or len(raw) > MAX_UPLOAD:
+        return None
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    stem = re.sub(r"[^A-Za-z0-9._-]", "", os.path.basename(name or ""))
+    stem = os.path.splitext(stem)[0][:40] or "logo"
+    fname = "%s-%s%s" % (stem, secrets.token_hex(4), ext)
+    with open(os.path.join(UPLOAD_DIR, fname), "wb") as f:
+        f.write(raw)
+    return "data/uploads/" + fname
+
+
 # ----------------------------- HTTP handler -----------------------------
 class Handler(BaseHTTPRequestHandler):
     server_version = "AstroSync/1.0"
@@ -161,6 +198,17 @@ class Handler(BaseHTTPRequestHandler):
             if check_password(str(data.get("password", ""))):
                 return self.send_json({"token": make_token(), "expiresIn": TOKEN_TTL})
             return self.send_json({"error": "invalid password"}, 401)
+        if path == "/api/upload":
+            if not self.authed():
+                return self.send_json({"error": "unauthorized"}, 401)
+            try:
+                data = json.loads(self.read_body() or b"{}")
+            except Exception:
+                return self.send_json({"error": "bad json"}, 400)
+            src = save_upload(data.get("name", ""), data.get("dataUrl", ""))
+            if not src:
+                return self.send_json({"error": "invalid image (png/jpg/svg/webp/gif, max 3MB)"}, 400)
+            return self.send_json({"ok": True, "src": src})
         return self.send_json({"error": "not found"}, 404)
 
     def do_PUT(self):

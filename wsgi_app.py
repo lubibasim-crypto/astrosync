@@ -62,6 +62,28 @@ def application(environ, start_response):
     if path == "/api/health":
         return _json(start_response, {"ok": True})
 
+    if path == "/api/submissions" and method == "GET":
+        auth = environ.get("HTTP_AUTHORIZATION", "")
+        token = auth[7:] if auth.startswith("Bearer ") else ""
+        if not server.valid_token(token):
+            return _json(start_response, {"error": "unauthorized"}, "401 Unauthorized")
+        return _json(start_response, {"submissions": server.read_submissions()})
+
+    if path == "/api/contact" and method == "POST":
+        data = _read_json(environ)
+        status, body = server.handle_contact(data if data is not None else {})
+        st = "200 OK" if status == 200 else ("400 Bad Request" if status == 400 else "500 Internal Server Error")
+        return _json(start_response, body, st)
+
+    if path == "/api/submission-delete" and method == "POST":
+        auth = environ.get("HTTP_AUTHORIZATION", "")
+        token = auth[7:] if auth.startswith("Bearer ") else ""
+        if not server.valid_token(token):
+            return _json(start_response, {"error": "unauthorized"}, "401 Unauthorized")
+        data = _read_json(environ) or {}
+        server.delete_submission(str(data.get("id", "")))
+        return _json(start_response, {"ok": True})
+
     if path == "/api/content":
         if method == "GET":
             c = server.read_content()

@@ -15,12 +15,15 @@ Run:
 Default admin password is "astrosync" (change it — see README).
 """
 import os, re, json, sqlite3, hmac, hashlib, base64, time, secrets, tempfile, mimetypes
+import threading, smtplib
+from email.message import EmailMessage
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 UPLOAD_DIR = os.path.join(DATA_DIR, "uploads")
 CONTENT_FILE = os.path.join(DATA_DIR, "content.json")
+SUBMISSIONS_FILE = os.path.join(DATA_DIR, "submissions.json")
 DB_FILE = os.path.join(DATA_DIR, "admin.db")
 # Locally bind to localhost; on a host (Render/Railway set PORT) bind to 0.0.0.0.
 HOST = os.environ.get("HOST") or ("0.0.0.0" if os.environ.get("PORT") else "127.0.0.1")
@@ -152,6 +155,113 @@ def save_upload(name, data_url):
     return "data/uploads/" + fname
 
 
+# ----------------------------- contact submissions -----------------------------
+SUB_LOCK = threading.Lock()
+# Fields captured from the contact form (id/ts are added server-side).
+SUB_FIELDS = ["fname", "lname", "email", "business", "service", "budget", "message"]
+
+
+def read_submissions():
+    if os.path.exists(SUBMISSIONS_FILE):
+        try:
+            with open(SUBMISSIONS_FILE, "r", encoding="utf-8") as f:
+                arr = json.load(f)
+                return arr if isinstance(arr, list) else []
+        except Exception:
+            return []
+    return []
+
+
+def _write_submissions(arr):
+    os.makedirs(DATA_DIR, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=DATA_DIR, suffix=".tmp")
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        json.dump(arr, f, ensure_ascii=False, indent=2)
+    os.replace(tmp, SUBMISSIONS_FILE)
+
+
+def save_submission(data):
+    sub = {"id": secrets.token_hex(6), "ts": int(time.time())}
+    for k in SUB_FIELDS:
+        sub[k] = str(data.get(k, "") or "")[:2000]
+    with SUB_LOCK:
+        arr = read_submissions()
+        arr.append(sub)
+        _write_submissions(arr)
+    return sub
+
+
+def delete_submission(sub_id):
+    with SUB_LOCK:
+        arr = read_submissions()
+        kept = [s for s in arr if s.get("id") != sub_id]
+        if len(kept) != len(arr):
+            _write_submissions(kept)
+    return True
+
+
+def send_contact_email(sub):
+    """Best-effort email of a submission. Returns True on success.
+
+    Configured via env vars (set them in the WSGI file, like ADMIN_PASSWORD):
+      SMTP_HOST, SMTP_PORT (default 587), SMTP_USER, SMTP_PASS,
+      CONTACT_TO (recipient; defaults to SMTP_USER), CONTACT_FROM (defaults to SMTP_USER).
+    If SMTP isn't configured, this silently returns False (submission is still stored).
+    """
+    host = os.environ.get("SMTP_HOST")
+    user = os.environ.get("SMTP_USER")
+    pw = os.environ.get("SMTP_PASS")
+    to = os.environ.get("CONTACT_TO") or user
+    if not (host and user and pw and to):
+        return False
+    port = int(os.environ.get("SMTP_PORT", "587"))
+    frm = os.environ.get("CONTACT_FROM") or user
+    name = (sub.get("fname", "") + " " + sub.get("lname", "")).strip() or "Website visitor"
+    lines = [
+        "New audit request from your AstroSync website:", "",
+        "Name:     " + name,
+        "Email:    " + sub.get("email", ""),
+        "Business: " + sub.get("business", ""),
+        "Service:  " + sub.get("service", ""),
+        "Budget:   " + sub.get("budget", ""),
+        "", "Message:", sub.get("message", ""),
+        "", "Received: " + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(sub.get("ts", time.time()))),
+    ]
+    msg = EmailMessage()
+    msg["Subject"] = "New audit request — " + name
+    msg["From"] = frm
+    msg["To"] = to
+    if sub.get("email"):
+        msg["Reply-To"] = sub["email"]
+    msg.set_content("\n".join(lines))
+    try:
+        with smtplib.SMTP(host, port, timeout=15) as s:
+            s.starttls()
+            s.login(user, pw)
+            s.send_message(msg)
+        return True
+    except Exception as e:
+        print("[contact] email send failed:", e)
+        return False
+
+
+def handle_contact(data):
+    """Validate + store + email a contact submission. Returns (status, body)."""
+    if not isinstance(data, dict):
+        return 400, {"error": "expected object"}
+    # Honeypot: real users never fill the hidden 'website' field — silently accept bots.
+    if str(data.get("website", "") or "").strip():
+        return 200, {"ok": True}
+    if not str(data.get("email", "") or "").strip() or not str(data.get("fname", "") or "").strip():
+        return 400, {"error": "name and email are required"}
+    sub = save_submission(data)
+    try:
+        send_contact_email(sub)
+    except Exception as e:
+        print("[contact] email error:", e)
+    return 200, {"ok": True}
+
+
 # ----------------------------- HTTP handler -----------------------------
 class Handler(BaseHTTPRequestHandler):
     server_version = "AstroSync/1.0"
@@ -186,6 +296,10 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/content":
             c = read_content()
             return self.send_json(c, 200) if c is not None else self.send_json({"error": "no content"}, 404)
+        if path == "/api/submissions":
+            if not self.authed():
+                return self.send_json({"error": "unauthorized"}, 401)
+            return self.send_json({"submissions": read_submissions()})
         return self.serve_static(path)
 
     def do_POST(self):
@@ -209,6 +323,22 @@ class Handler(BaseHTTPRequestHandler):
             if not src:
                 return self.send_json({"error": "invalid image (png/jpg/svg/webp/gif, max 3MB)"}, 400)
             return self.send_json({"ok": True, "src": src})
+        if path == "/api/contact":
+            try:
+                data = json.loads(self.read_body() or b"{}")
+            except Exception:
+                return self.send_json({"error": "bad json"}, 400)
+            status, body = handle_contact(data)
+            return self.send_json(body, status)
+        if path == "/api/submission-delete":
+            if not self.authed():
+                return self.send_json({"error": "unauthorized"}, 401)
+            try:
+                data = json.loads(self.read_body() or b"{}")
+            except Exception:
+                return self.send_json({"error": "bad json"}, 400)
+            delete_submission(str(data.get("id", "")))
+            return self.send_json({"ok": True})
         return self.send_json({"error": "not found"}, 404)
 
     def do_PUT(self):

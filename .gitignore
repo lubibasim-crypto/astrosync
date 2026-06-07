@@ -5,6 +5,8 @@ __pycache__/
 # Local admin secrets / sessions (never commit)
 data/admin.db
 data/*.tmp
+# Contact-form submissions (visitor PII — server-side only, never commit)
+data/submissions.json
 
 # Editor / OS
 .DS_Store

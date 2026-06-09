@@ -148,6 +148,22 @@ input,textarea,select{font-family:inherit}
 .sub-meta b{color:var(--a-muted);font-weight:600}
 .sub-msg{margin:.6rem 0;padding:.7rem .9rem;background:var(--a-bg);border:1px solid var(--a-border);border-radius:8px;font-size:.88rem;white-space:pre-wrap;line-height:1.5}
 .sub-reply{display:inline-block;margin-top:.3rem;font-size:.82rem;font-weight:600;color:var(--a-teal)}
+.sub-quote{margin:.6rem 0;padding:.7rem .9rem;background:var(--a-bg);border:1px solid var(--a-border);border-left:3px solid var(--a-teal);border-radius:8px}
+.sub-quote-h{font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;color:var(--a-muted);font-weight:700;margin-bottom:.5rem}
+.sub-quote-list{display:flex;flex-direction:column;gap:.3rem;margin-bottom:.5rem}
+.sub-quote-list li{display:flex;justify-content:space-between;gap:1rem;font-size:.86rem}
+.sub-quote-list li span:last-child{font-weight:700;color:var(--a-teal);flex-shrink:0}
+.sub-quote-total{display:flex;justify-content:space-between;gap:1rem;padding-top:.5rem;border-top:1px solid var(--a-border);font-size:.9rem}
+.sub-quote-total b{color:var(--a-teal)}
+
+/* blog / resources editor */
+.blog-editor .section-label{margin-top:1.4rem}
+.blog-list{display:flex;flex-direction:column;gap:.9rem;margin-bottom:1rem}
+.blog-post-item .list-item-head .tag{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60%}
+.blocks-list{display:flex;flex-direction:column;gap:.6rem;margin:.4rem 0 .8rem;padding-left:.6rem;border-left:2px solid var(--a-border)}
+.block-item{background:var(--a-panel-2);border:1px solid var(--a-border);border-radius:10px;padding:.7rem .8rem .2rem}
+.block-item .list-item-head{margin-bottom:.5rem}
+.block-item .list-item-head .tag{font-size:.7rem}
 
 @media(max-width:760px){
   .app{grid-template-columns:1fr}

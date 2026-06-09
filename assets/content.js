@@ -104,6 +104,34 @@ window.ASTRO_DEFAULT_CONTENT = {
     ]
   },
 
+  // Drag-and-drop quote calculator (Pricing page). Prices are per-unit, in
+  // the chosen currency. `recommended` quantities power the "Suggested starter
+  // package", which the front-end always tops up to at least `minQuote`.
+  // Fully editable in the admin "Quote Calculator" panel.
+  calculator: {
+    eyebrow: "Build Your Package",
+    title: "Build Your *Custom Quote*",
+    sub: "Drag the services you need into your quote, set the quantities, and watch your estimate update live. No hidden fees — just the work that grows your business.",
+    currency: "$",
+    minQuote: 600,
+    minNote: "Our minimum engagement is $600 — it's what lets our dual-team model deliver results worth talking about. Add a few more services (or nudge your quantities up) to get there.",
+    emptyNote: "Drag a service over here, or tap “+ Add” — then set your quantities.",
+    ctaLabel: "Request This Quote",
+    ctaHref: "contact.html",
+    suggestLabel: "✦ Suggest a starter package",
+    services: [
+      { icon: "🎬", name: "Instagram Reel",            desc: "Editing, captions, audio and on-brand text — built for the algorithm.", price: 60, unit: "per reel",     recommended: 5 },
+      { icon: "🖼️", name: "Graphic Post",              desc: "Static, fully branded feed design.",                                   price: 25, unit: "per post",     recommended: 4 },
+      { icon: "🎠", name: "Carousel Post",              desc: "5–10 branded, swipeable slides.",                                      price: 15, unit: "per carousel", recommended: 2 },
+      { icon: "🔍", name: "Profile Analysis",           desc: "Deep dive: followers, engagement and growth audit.",                   price: 65, unit: "one-time",     recommended: 1 },
+      { icon: "🔗", name: "Linktree / Bio Link Setup",  desc: "Designed bio link with tracked UTMs.",                                 price: 25, unit: "one-time",     recommended: 0 },
+      { icon: "💬", name: "Instagram Community Hub",     desc: "Broadcast channel / close-friends setup.",                             price: 25, unit: "setup",        recommended: 0 },
+      { icon: "✍️", name: "SEO Caption Copy",            desc: "Keyword-optimised reel + post captions.",                              price: 20, unit: "per caption",  recommended: 3 },
+      { icon: "#️⃣", name: "Hashtag Research",            desc: "Niche, ranked hashtag set refreshed monthly.",                         price: 15, unit: "per month",    recommended: 1 },
+      { icon: "📊", name: "Month-End Report",           desc: "Reach, engagement, growth and insights.",                              price: 50, unit: "per month",    recommended: 1 }
+    ]
+  },
+
   testimonials: {
     eyebrow: "Client Stories",
     title: "Houston Businesses\n*Love AstroSync*",
@@ -140,10 +168,10 @@ window.ASTRO_DEFAULT_CONTENT = {
     valuesEyebrow: "What Drives Us",
     valuesTitle: "Our *Operating Principles*",
     values: [
+      { title: "Underdog energy", text: "The big agencies ignored your market. We're hungry to prove they were wrong." },
       { title: "Honesty over hype", text: "No vanity metrics, no surprise invoices. We report on what actually grows your business." },
       { title: "Speed as a feature", text: "Campaigns live within 48 hours of sign-off. Momentum compounds — so we never let it stall." },
-      { title: "Local first", text: "We win when Houston wins. Every strategy is built for the neighborhoods you actually serve." },
-      { title: "Underdog energy", text: "The big agencies ignored your market. We're hungry to prove they were wrong." }
+      { title: "Local first", text: "We win when Houston wins. Every strategy is built for the neighborhoods you actually serve." }
     ]
   },
 
@@ -156,6 +184,61 @@ window.ASTRO_DEFAULT_CONTENT = {
       { icon: "📍", title: "Rawalpindi, PK 🇵🇰", sub: "Creative & Execution Team" },
       { icon: "✉️", title: "hello@astrosync.agency", sub: "Response within 24 hours" },
       { icon: "📞", title: "(832) 555-0190", sub: "Mon–Fri, 9am–6pm CT" }
+    ]
+  },
+
+  // Resources / blog. Each post has a block-based body (Medium-style) and a
+  // funnel CTA. Fully editable in the admin "Resources" panel.
+  blog: {
+    eyebrow: "Resources",
+    title: "Insights & *Playbooks*",
+    sub: "Strategies, breakdowns, and behind-the-scenes from the AstroSync team — built to help Houston businesses grow.",
+    recommendedTitle: "Keep Reading",
+    ctaHeading: "Ready to put this to work?",
+    // Default funnel CTA used when a post doesn't set its own.
+    defaultCta: { type: "calculator", label: "Build your custom package", href: "pricing.html" },
+    posts: [
+      {
+        slug: "instagram-reels-that-convert",
+        title: "5 Instagram Reels That Actually Convert (Not Just Rack Up Views)",
+        excerpt: "Views are vanity. Here's the reel framework we use to turn scrollers into Houston customers.",
+        category: "Content Strategy", author: "AstroSync Team", date: "2026-06-02", read: "6 min read", cover: "",
+        cta: { type: "calculator", label: "Price out your reel package", href: "pricing.html" },
+        blocks: [
+          { type: "paragraph", text: "Everybody wants viral. Almost nobody wants the boring part: a reel that books a table, fills a calendar, or sells a service. After producing hundreds of reels for Houston businesses, we've found five formats that consistently move revenue — not just the view counter." },
+          { type: "heading", text: "1. The “Problem → Proof” hook" },
+          { type: "paragraph", text: "Open with the exact problem your customer is Googling at 11pm. Then show — don't tell — the result. The first 1.5 seconds decide whether the algorithm keeps pushing you." },
+          { type: "quote", text: "If your first frame could be a stock photo, you've already lost the scroll.", cite: "AstroSync creative team" },
+          { type: "heading", text: "2. Behind-the-counter authenticity" },
+          { type: "paragraph", text: "Polished is forgettable. Real is shareable. A 20-second clip of your team doing the work out-performs a $2,000 ad shoot more often than you'd think." },
+          { type: "image", src: "assets/mark.svg", caption: "On-brand, consistent visuals beat one-off perfection." }
+        ]
+      },
+      {
+        slug: "why-600-minimum",
+        title: "Why Our Minimum Is $600 — And Why That's Good For You",
+        excerpt: "Cheap marketing is the most expensive marketing there is. Here's the math behind our minimum engagement.",
+        category: "Pricing", author: "AstroSync Team", date: "2026-05-26", read: "4 min read", cover: "",
+        cta: { type: "contact", label: "Get a free audit", href: "contact.html" },
+        blocks: [
+          { type: "paragraph", text: "We get asked all the time: “Can you just do a couple of posts for $100?” We can — but we won't, and here's the honest reason why." },
+          { type: "heading", text: "Results need a floor" },
+          { type: "paragraph", text: "Below a certain volume, social media simply doesn't compound. A handful of disconnected posts is a cost. A consistent, strategic cadence is an investment. The $600 minimum is the smallest package where our dual-team model can actually produce momentum." },
+          { type: "quote", text: "We'd rather do great work for fewer clients than mediocre work for everyone.", cite: "AstroSync" }
+        ]
+      },
+      {
+        slug: "local-seo-houston",
+        title: "The Houston Local SEO Checklist We Run For Every New Client",
+        excerpt: "Eleven things that get you found when your neighbors search — most of them free.",
+        category: "Local SEO", author: "AstroSync Team", date: "2026-05-18", read: "7 min read", cover: "",
+        cta: { type: "calculator", label: "Build your growth package", href: "pricing.html" },
+        blocks: [
+          { type: "paragraph", text: "Ranking in the Houston map pack isn't luck. It's a checklist. Here's the exact one we run in the first week of every engagement." },
+          { type: "heading", text: "Start with Google Business Profile" },
+          { type: "paragraph", text: "Claim it, complete every field, choose precise categories, and post weekly. This single asset out-earns most paid campaigns for local intent." }
+        ]
+      }
     ]
   },
 
@@ -174,8 +257,14 @@ window.ASTRO_DEFAULT_CONTENT = {
       { label: "Houston, TX 🇺🇸", sub: "Strategy & Account Management" },
       { label: "Rawalpindi, PK 🇵🇰", sub: "Creative & Execution" }
     ],
+    // Map pin shown in the footer — opens this link in a new tab when clicked.
+    mapLabel: "Find us on the map",
+    mapUrl: "https://www.google.com/maps/search/?api=1&query=Houston%2C+TX",
     copyright: "© 2026 AstroSync Agency. Houston, TX & Rawalpindi, PK."
   },
+
+  // Floating "build your package" button shown on every page (admin-editable).
+  floatingCta: { enabled: true, label: "Build Your Package", href: "pricing.html" },
 
   socials: [
     { network: "instagram", href: "#" },
@@ -209,6 +298,7 @@ window.ASTRO_DEFAULT_CONTENT = {
       { id: "services-header", type: "pageHeader", opt: { ref: "services" } },
       { id: "services-grid", type: "services", opt: { variant: "full", topPad: 60 } },
       { id: "services-process", type: "process", opt: { head: true } },
+      { id: "services-calc", type: "calculator" },
       { id: "services-cta", type: "cta", opt: { ref: "services" } }
     ],
     about: [
@@ -221,6 +311,7 @@ window.ASTRO_DEFAULT_CONTENT = {
     pricing: [
       { id: "pricing-header", type: "pageHeader", opt: { ref: "pricing" } },
       { id: "pricing-grid", type: "pricing", opt: { topPad: 60 } },
+      { id: "pricing-calc", type: "calculator" },
       { id: "pricing-faq", type: "faq", opt: { head: true, center: true } },
       { id: "pricing-cta", type: "cta", opt: { ref: "pricing" } }
     ],
@@ -233,6 +324,13 @@ window.ASTRO_DEFAULT_CONTENT = {
     contact: [
       { id: "contact-header", type: "pageHeader", opt: { ref: "contact" } },
       { id: "contact-body", type: "contact", opt: { topPad: 60 } }
+    ],
+    resources: [
+      { id: "resources-header", type: "pageHeader", opt: { ref: "resources" } },
+      { id: "resources-list", type: "blogList", opt: { topPad: 60 } }
+    ],
+    blog: [
+      { id: "blog-post", type: "blogPost" }
     ]
   }
 };
@@ -243,7 +341,8 @@ window.ASTRO_PAGEHEAD = {
   about:    { eyebrow: "about.eyebrow",    title: "about.title",    sub: "about.lead" },
   pricing:  { eyebrow: "pricing.eyebrow",  title: "pricing.title",  sub: "pricing.sub" },
   work:     { eyebrow: "results.eyebrow",  title: "results.title",  sub: "results.sub" },
-  contact:  { eyebrow: "contact.eyebrow",  title: "contact.title",  sub: "contact.lead" }
+  contact:  { eyebrow: "contact.eyebrow",  title: "contact.title",  sub: "contact.lead" },
+  resources:{ eyebrow: "blog.eyebrow",     title: "blog.title",     sub: "blog.sub" }
 };
 
 // Catalog of section types that can be added in the admin Layout panel.
@@ -257,7 +356,10 @@ window.ASTRO_SECTION_TYPES = [
   { type: "results", label: "Results / case stats" },
   { type: "testimonials", label: "Testimonials" },
   { type: "pricing", label: "Pricing plans" },
+  { type: "calculator", label: "Quote calculator" },
   { type: "faq", label: "FAQ" },
+  { type: "blogList", label: "Blog / resources list" },
+  { type: "blogPost", label: "Blog post (single)" },
   { type: "teams", label: "Teams (dual-team)" },
   { type: "values", label: "Values list" },
   { type: "contact", label: "Contact form + info" },

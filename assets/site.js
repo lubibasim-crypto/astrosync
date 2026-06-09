@@ -23,6 +23,7 @@
     x: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.2 2h3.3l-7.2 8.2L23 22h-6.7l-5.2-6.8L5.1 22H1.8l7.7-8.8L1 2h6.8l4.7 6.2zm-1.2 18h1.8L7.1 3.9H5.2z"/></svg>'
   };
   function iconSvg(name) { return ICONS[name] || ICONS.instagram; }
+  var PIN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>';
 
   /* ---------- Helpers ---------- */
   function deepMerge(base, over) {
@@ -144,6 +145,7 @@
     { page: "services", href: "services.html", label: "Services" },
     { page: "work", href: "work.html", label: "Work" },
     { page: "pricing", href: "pricing.html", label: "Pricing" },
+    { page: "resources", href: "resources.html", label: "Resources" },
     { page: "about", href: "about.html", label: "About" }
   ];
 
@@ -207,6 +209,10 @@
     var locs = ((C.footer && C.footer.locations) || []).map(function (l) {
       return '<div class="loc" style="margin-bottom:.9rem"><b>' + esc(l.label) + "</b>" + esc(l.sub) + "</div>";
     }).join("");
+    var mapUrl = get(C, "footer.mapUrl"), mapLabel = get(C, "footer.mapLabel") || "View on map";
+    var mapLink = (mapUrl != null && mapUrl !== "")
+      ? '<a class="footer-map" href="' + esc(mapUrl) + '" target="_blank" rel="noopener">' + PIN_SVG + "<span>" + esc(mapLabel) + "</span></a>"
+      : "";
     f.innerHTML =
       '<div class="container"><div class="footer-top">' +
         "<div>" +
@@ -225,16 +231,55 @@
           '<li><a href="about.html">About Us</a></li>' +
           '<li><a href="work.html">Case Studies</a></li>' +
           '<li><a href="pricing.html">Pricing</a></li>' +
+          '<li><a href="resources.html">Resources</a></li>' +
           '<li><a href="contact.html">Contact</a></li>' +
         "</ul></div>" +
         '<div class="footer-col"><h4>Locations</h4>' + locs +
           '<p style="margin-top:1rem">' + esc(get(C, "footer.email")) + "<br>" + esc(get(C, "footer.phone")) + "</p>" +
+          mapLink +
         "</div>" +
       "</div>" +
       '<div class="footer-bottom"><p>' + esc(get(C, "footer.copyright")) +
         '</p><div class="footer-links"><a href="#">Privacy Policy</a><a href="#">Terms of Service</a></div></div>' +
       "</div>";
     document.body.appendChild(f);
+  }
+
+  /* ---------- Floating "build your package" CTA (all pages) ---------- */
+  function buildFloatingCta(C) {
+    var f = C.floatingCta || {};
+    if (f.enabled === false) return;
+    var a = document.createElement("a");
+    a.className = "floating-cta";
+    a.href = f.href || "pricing.html";
+    a.setAttribute("aria-label", f.label || "Build your package");
+    a.innerHTML = '<span class="fc-ico" aria-hidden="true">✦</span><span class="fc-label">' + esc(f.label || "Build Your Package") + "</span>";
+    document.body.appendChild(a);
+  }
+
+  /* ---------- Custom dot + trailing-ring cursor ---------- */
+  function buildCursor() {
+    if (!(window.matchMedia && window.matchMedia("(pointer: fine)").matches)) return; // mouse only
+    var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var ring = document.createElement("div"); ring.className = "cursor-ring";
+    var dot = document.createElement("div"); dot.className = "cursor-dot";
+    document.body.appendChild(ring); document.body.appendChild(dot);
+    document.documentElement.classList.add("has-cursor");
+    var mx = window.innerWidth / 2, my = window.innerHeight / 2, rx = mx, ry = my, shown = false;
+    var HOVER = "a,button,input,textarea,select,label,[role=button],.calc-card,.faq-q,.drag-handle,.calc-handle";
+    function show() { if (!shown) { shown = true; dot.classList.add("on"); ring.classList.add("on"); } }
+    document.addEventListener("mousemove", function (e) {
+      mx = e.clientX; my = e.clientY;
+      dot.style.transform = "translate(" + mx + "px," + my + "px)";
+      if (reduce) ring.style.transform = "translate(" + mx + "px," + my + "px)";
+      show();
+    }, { passive: true });
+    if (!reduce) (function loop() { rx += (mx - rx) * 0.18; ry += (my - ry) * 0.18; ring.style.transform = "translate(" + rx + "px," + ry + "px)"; requestAnimationFrame(loop); })();
+    document.addEventListener("mouseover", function (e) { if (e.target.closest && e.target.closest(HOVER)) document.documentElement.classList.add("cursor-hover"); });
+    document.addEventListener("mouseout", function (e) { if (e.target.closest && e.target.closest(HOVER)) document.documentElement.classList.remove("cursor-hover"); });
+    document.addEventListener("mousedown", function () { document.documentElement.classList.add("cursor-down"); });
+    document.addEventListener("mouseup", function () { document.documentElement.classList.remove("cursor-down"); });
+    document.documentElement.addEventListener("mouseleave", function () { dot.classList.remove("on"); ring.classList.remove("on"); shown = false; });
   }
 
   /* ---------- 3D social sphere ---------- */
@@ -317,7 +362,11 @@
       var items = get(C, "testimonials.items") || [];
       if (opt.limit) items = items.slice(0, +opt.limit);
       return items.map(function (t, i) {
-        return '<div class="card quote-card reveal' + (i % 3 ? " d" + (i % 3) : "") + '"><div class="stars">★★★★★</div>' +
+        var media = t.video ? videoEmbed(t.video, "tm-media")
+                  : (t.media ? '<div class="tm-media"><img src="' + esc(t.media) + '" alt="' + esc((t.name || "") + " example") + '" loading="lazy"></div>' : "");
+        var cap = (media && t.caption) ? '<p class="tm-cap">' + esc(t.caption) + "</p>" : "";
+        return '<div class="card quote-card reveal' + (i % 3 ? " d" + (i % 3) : "") + '">' + media + cap +
+               '<div class="stars">★★★★★</div>' +
                "<blockquote>" + esc(t.quote) + '</blockquote><div class="who"><div class="avatar">' + esc(t.initials) +
                '</div><div><div class="name">' + esc(t.name) + '</div><div class="role">' + esc(t.role) + "</div></div></div></div>";
       }).join("");
@@ -395,6 +444,62 @@
   }
   function ctaData(C, ref) {
     return (C.ctas && C.ctas[ref]) || (ref === "home" ? C.cta : null) || C.cta || {};
+  }
+  // Turn a video URL (YouTube / Vimeo / direct file) into embeddable markup.
+  function videoEmbed(url, cls) {
+    url = String(url || "").trim();
+    if (!url) return "";
+    cls = cls || "video-embed";
+    var yt = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{6,})/);
+    var vm = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+    var src = yt ? ("https://www.youtube.com/embed/" + yt[1]) : (vm ? ("https://player.vimeo.com/video/" + vm[1]) : "");
+    if (src) return '<div class="' + cls + '"><iframe src="' + esc(src) + '" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>';
+    if (/\.(mp4|webm|ogg)(\?|#|$)/i.test(url)) return '<div class="' + cls + '"><video src="' + esc(url) + '" controls preload="metadata"></video></div>';
+    return '<a class="' + cls + ' video-link" href="' + esc(url) + '" target="_blank" rel="noopener">▶ Watch video</a>';
+  }
+  // Resolve a blog post's funnel CTA (falls back to blog.defaultCta).
+  function postCta(C, p) {
+    var d = get(C, "blog.defaultCta") || {}, c = (p && p.cta) || {};
+    var type = c.type || d.type || "calculator";
+    var label = c.label || d.label || (type === "contact" ? "Get a free audit" : "Build your custom package");
+    var href = c.href || d.href || (type === "contact" ? "contact.html" : "pricing.html");
+    return { type: type, label: label, href: href };
+  }
+  // A single blog post card (used in the list + "recommended" rail).
+  function blogCard(p) {
+    var cover = (p.cover)
+      ? '<div class="blog-cover"><img src="' + esc(p.cover) + '" alt="" loading="lazy"></div>'
+      : '<div class="blog-cover blog-cover-ph"><span>' + esc(p.category || "AstroSync") + "</span></div>";
+    var meta = [p.date, p.read].filter(Boolean).map(esc).join(" · ");
+    return '<a class="card blog-card" href="blog.html?slug=' + encodeURIComponent(p.slug || "") + '">' + cover +
+      '<div class="blog-card-body">' +
+        (p.category ? '<span class="blog-cat">' + esc(p.category) + "</span>" : "") +
+        "<h3>" + esc(p.title) + "</h3><p>" + esc(p.excerpt) + "</p>" +
+        '<div class="blog-meta">' + meta + "</div>" +
+      "</div></a>";
+  }
+  // One content block within a blog post body.
+  function renderBlock(b) {
+    if (!b || !b.type) return "";
+    if (b.type === "heading") return '<h2 class="post-h">' + esc(b.text) + "</h2>";
+    if (b.type === "quote") return '<blockquote class="post-quote">' + esc(b.text) + (b.cite ? "<cite>— " + esc(b.cite) + "</cite>" : "") + "</blockquote>";
+    if (b.type === "image") return b.src ? '<figure class="post-figure"><img src="' + esc(b.src) + '" alt="' + esc(b.caption || "") + '" loading="lazy">' + (b.caption ? "<figcaption>" + esc(b.caption) + "</figcaption>" : "") + "</figure>" : "";
+    if (b.type === "video") return b.url ? '<figure class="post-figure">' + videoEmbed(b.url, "post-video") + (b.caption ? "<figcaption>" + esc(b.caption) + "</figcaption>" : "") + "</figure>" : "";
+    return '<p class="post-p">' + esc(b.text).replace(/\n/g, "<br>") + "</p>";
+  }
+  // One draggable service card in the calculator catalog.
+  function calcCard(s, i, cur) {
+    return '<article class="calc-card" draggable="true" data-svc="' + i + '">' +
+      '<span class="calc-card-ico" aria-hidden="true">' + esc(s.icon || "✦") + "</span>" +
+      '<div class="calc-card-main">' +
+        "<h4>" + esc(s.name) + "</h4>" +
+        "<p>" + esc(s.desc) + "</p>" +
+        '<div class="calc-card-foot">' +
+          '<span class="calc-price">' + esc(cur) + esc(s.price) + " <small>" + esc(s.unit) + "</small></span>" +
+          '<button type="button" class="calc-add" data-svc="' + i + '" aria-label="Add ' + esc(s.name) + ' to quote">+ Add</button>' +
+        "</div>" +
+      "</div>" +
+    "</article>";
   }
 
   var SECTIONS = {
@@ -477,6 +582,63 @@
         "<h2>" + rich(c.title) + "</h2><p>" + esc(c.text) + "</p>" +
         '<a class="btn btn-white btn-lg" href="' + esc(c.href || "contact.html") + '"><span>' + esc(c.button) + '</span> <span class="arr">→</span></a>' +
         "</div></div></section>";
+    },
+    blogList: function (C, opt) {
+      opt = opt || {};
+      var posts = get(C, "blog.posts") || [];
+      if (opt.limit) posts = posts.slice(0, +opt.limit);
+      var head = opt.head ? headBlock(C, "blog.eyebrow", "blog.title", "blog.sub", opt.center) : "";
+      var cards = posts.map(blogCard).join("");
+      return sectionWrap(head + '<div class="blog-grid">' + (cards || '<p class="section-sub">No articles published yet.</p>') + "</div>" + linkBtn(opt));
+    },
+    blogPost: function (C) {
+      var posts = get(C, "blog.posts") || [];
+      var slug = null;
+      try { slug = new URLSearchParams(location.search).get("slug"); } catch (e) {}
+      var p = (slug ? posts.filter(function (x) { return x.slug === slug; })[0] : null) || posts[0];
+      if (!p) return sectionWrap('<p class="section-sub">No article found. <a href="resources.html">Back to Resources</a>.</p>');
+      var meta = [p.author, p.date, p.read].filter(Boolean).map(esc).join(" · ");
+      var cover = p.cover ? '<div class="post-cover"><img src="' + esc(p.cover) + '" alt=""></div>' : "";
+      var body = (p.blocks || []).map(renderBlock).join("");
+      var cta = postCta(C, p);
+      var ctaBand = '<div class="post-cta reveal"><h3>' + esc(get(C, "blog.ctaHeading") || "Ready to put this to work?") + "</h3>" +
+        '<a class="btn btn-primary btn-lg" href="' + esc(cta.href) + '"><span>' + esc(cta.label) + '</span> <span class="arr">→</span></a></div>';
+      var others = posts.filter(function (x) { return x.slug !== p.slug; }).slice(0, 3);
+      var rec = others.length
+        ? '<div class="post-recommended"><h2 class="section-title" style="font-size:1.9rem;margin-bottom:1.6rem">' + esc(get(C, "blog.recommendedTitle") || "Keep Reading") +
+          '</h2><div class="blog-grid">' + others.map(blogCard).join("") + "</div></div>" : "";
+      return '<article class="section post"><div class="container post-narrow">' +
+          '<a class="post-back" href="resources.html">← All Resources</a>' +
+          (p.category ? '<span class="blog-cat">' + esc(p.category) + "</span>" : "") +
+          '<h1 class="post-title">' + rich(p.title) + "</h1>" +
+          '<div class="post-byline">' + meta + "</div>" + cover +
+          '<div class="post-body">' + body + "</div>" + ctaBand +
+        "</div>" + (rec ? '<div class="container">' + rec + "</div>" : "") + "</article>";
+    },
+    calculator: function (C) {
+      var cfg = C.calculator || {};
+      var cur = cfg.currency || "$";
+      var head = headBlock(C, "calculator.eyebrow", "calculator.title", "calculator.sub", true);
+      var cards = (cfg.services || []).map(function (s, i) { return calcCard(s, i, cur); }).join("");
+      return sectionWrap(head +
+        '<div class="calc" data-min="' + (+cfg.minQuote || 0) + '" data-cur="' + esc(cur) + '">' +
+          '<div class="calc-grid">' +
+            '<div class="calc-catalog reveal">' +
+              '<div class="calc-col-head"><h3>Services</h3><span>Drag a card into your quote — or tap +</span></div>' +
+              '<div class="calc-cards" id="calcCatalog">' + cards + "</div>" +
+            "</div>" +
+            '<div class="calc-quote reveal d1">' +
+              '<div class="calc-col-head"><h3>Your Quotation</h3><button type="button" class="calc-clear" id="calcClear">Clear all</button></div>' +
+              '<div class="calc-drop" id="calcDrop" aria-live="polite"></div>' +
+              '<div class="calc-summary">' +
+                '<p class="calc-note" id="calcNote"></p>' +
+                '<div class="calc-total-row"><span>Estimated total</span><span class="calc-total" id="calcTotal">' + esc(cur) + "0</span></div>" +
+                '<button class="btn btn-primary btn-lg calc-cta" type="button" id="calcCta"><span>' + esc(cfg.ctaLabel || "Request This Quote") + '</span> <span class="arr">→</span></button>' +
+                '<button class="calc-suggest" type="button" id="calcSuggest">' + esc(cfg.suggestLabel || "✦ Suggest a starter package") + "</button>" +
+              "</div>" +
+            "</div>" +
+          "</div>" +
+        "</div>", "calc-section");
     }
   };
 
@@ -574,6 +736,7 @@
   function wireForm() {
     var form = document.getElementById("auditForm");
     if (!form) return;
+    var pendingQuote = null; // structured quote carried over from the calculator
     form.addEventListener("submit", function (e) {
       e.preventDefault();
       var ok = true;
@@ -586,7 +749,8 @@
       function val(id) { var el = form.querySelector("#" + id); return el ? el.value : ""; }
       var payload = {
         fname: val("fname"), lname: val("lname"), email: val("email"), business: val("business"),
-        service: val("service"), budget: val("budget"), message: val("message"), website: val("website")
+        service: val("service"), budget: val("budget"), message: val("message"), website: val("website"),
+        quote: pendingQuote
       };
       var orig = btn.innerHTML;
       btn.disabled = true; btn.innerHTML = "Sending…";
@@ -602,8 +766,238 @@
           alert("Sorry — your message couldn't be sent right now. Please email " + em + " directly, or try again.");
         });
     });
+    // Attach a quote built on the calculator (carried via sessionStorage).
+    try {
+      var quoted = sessionStorage.getItem("astrosync-quote");
+      sessionStorage.removeItem("astrosync-quote");
+      var qd = quoted ? JSON.parse(quoted) : null;
+      if (qd && qd.items && qd.items.length) {
+        pendingQuote = qd;
+        renderAttachedQuote(form, qd, function () { pendingQuote = null; });
+        var svc = form.querySelector("#service");
+        if (svc && !svc.value) {
+          for (var oi = 0; oi < svc.options.length; oi++) {
+            if (/growth|full/i.test(svc.options[oi].text)) { svc.value = svc.options[oi].value; break; }
+          }
+        }
+      }
+    } catch (e) {}
     form.addEventListener("input", function (e) { var g = e.target.closest(".field"); if (g) g.classList.remove("invalid"); });
   }
+
+  // Render the "your quote" summary card at the top of the contact form.
+  function renderAttachedQuote(form, qd, onRemove) {
+    var cur = qd.currency || "$";
+    function fmt(n) { return cur + Math.round(n).toLocaleString(); }
+    var items = qd.items.map(function (it) {
+      return '<li><span>' + esc(it.qty + " × " + it.name) + "</span><span>" + fmt(it.total) + "</span></li>";
+    }).join("");
+    var box = document.createElement("div");
+    box.className = "quote-attached reveal";
+    box.innerHTML =
+      '<div class="qa-head"><b>✦ Your quote is attached</b>' +
+        '<button type="button" class="qa-remove" aria-label="Remove attached quote">Remove</button></div>' +
+      '<ul class="qa-items">' + items + "</ul>" +
+      '<div class="qa-total"><span>Estimated total</span><b>' + fmt(qd.total) + "</b></div>" +
+      '<p class="qa-note">This breakdown is sent with your enquiry — add anything else in the message below.</p>';
+    box.querySelector(".qa-remove").addEventListener("click", function () {
+      box.parentNode && box.parentNode.removeChild(box);
+      if (onRemove) onRemove();
+    });
+    form.insertBefore(box, form.firstChild);
+  }
+
+  /* ---------- Quote calculator (Pricing page) ---------- */
+  function wireCalculator(C) {
+    var root = document.querySelector(".calc");
+    var drop = document.getElementById("calcDrop");
+    if (!root || !drop) return;
+    var cfg = C.calculator || {};
+    var svcs = cfg.services || [];
+    var cur = cfg.currency || "$";
+    var min = +root.getAttribute("data-min") || 0;
+    var catalog = document.getElementById("calcCatalog");
+    var noteEl = document.getElementById("calcNote");
+    var totalEl = document.getElementById("calcTotal");
+    var ctaEl = document.getElementById("calcCta");
+    var suggestEl = document.getElementById("calcSuggest");
+    var clearEl = document.getElementById("calcClear");
+
+    var state = [];            // [{ svc: <index>, qty: <n> }]
+    var drag = null;           // { type: "add"|"move", svc?, from? }
+
+    function price(i) { return +(svcs[i] && svcs[i].price) || 0; }
+    function fmt(n) { return cur + Math.round(n).toLocaleString(); }
+    function total() { return state.reduce(function (t, x) { return t + price(x.svc) * x.qty; }, 0); }
+    function findLine(i) { for (var k = 0; k < state.length; k++) if (state[k].svc === i) return k; return -1; }
+
+    function add(i, qty) {
+      var k = findLine(i);
+      if (k >= 0) state[k].qty += (qty || 1);
+      else state.push({ svc: i, qty: qty || 1 });
+      render();
+    }
+    function setQty(k, q) {
+      q = Math.round(q);
+      if (!q || q < 1) state.splice(k, 1); else state[k].qty = q;
+      render();
+    }
+
+    function recommended() {
+      var st = [];
+      svcs.forEach(function (s, i) {
+        var q = Math.max(0, Math.round(+s.recommended || 0));
+        if (q > 0) st.push({ svc: i, qty: q });
+      });
+      if (!st.length && svcs.length) st.push({ svc: 0, qty: 1 });
+      // Top up (round-robin) until the bundle clears the minimum.
+      var guard = 0, ptr = 0;
+      function tot() { return st.reduce(function (t, x) { return t + price(x.svc) * x.qty; }, 0); }
+      while (tot() < min && st.length && guard++ < 4000) { st[ptr % st.length].qty++; ptr++; }
+      return st;
+    }
+
+    function summaryData() {
+      return {
+        currency: cur,
+        total: total(),
+        items: state.map(function (x) {
+          var s = svcs[x.svc];
+          return { name: s.name, unit: s.unit || "", price: price(x.svc), qty: x.qty, total: price(x.svc) * x.qty };
+        })
+      };
+    }
+
+    function lineHTML(x, k) {
+      var s = svcs[x.svc];
+      return '<div class="calc-line" data-k="' + k + '" data-svc="' + x.svc + '">' +
+        '<span class="calc-handle" title="Drag to reorder" aria-hidden="true">⠿</span>' +
+        '<div class="calc-line-info"><b>' + esc(s.name) + "</b><span>" + fmt(price(x.svc)) + " " + esc(s.unit || "") + "</span></div>" +
+        '<div class="calc-qty">' +
+          '<button type="button" data-act="dec" aria-label="Decrease">−</button>' +
+          '<input type="number" min="1" value="' + x.qty + '" aria-label="' + esc(s.name) + ' quantity">' +
+          '<button type="button" data-act="inc" aria-label="Increase">+</button>' +
+        "</div>" +
+        '<span class="calc-line-total">' + fmt(price(x.svc) * x.qty) + "</span>" +
+        '<button type="button" class="calc-remove" data-act="rm" aria-label="Remove">✕</button>' +
+      "</div>";
+    }
+
+    function render() {
+      // catalog: mark which services are already in the quote
+      if (catalog) {
+        catalog.querySelectorAll(".calc-card").forEach(function (card) {
+          card.classList.toggle("in-quote", findLine(+card.getAttribute("data-svc")) >= 0);
+        });
+      }
+      if (!state.length) {
+        drop.innerHTML = '<div class="calc-empty">' + esc(cfg.emptyNote || "Add a service to start your quote.") + "</div>";
+      } else {
+        drop.innerHTML = state.map(lineHTML).join("");
+      }
+      wireLineDnD();
+      var t = total();
+      totalEl.textContent = fmt(t);
+      var below = t < min;
+      if (!state.length) {
+        noteEl.className = "calc-note";
+        noteEl.textContent = cfg.emptyNote || "";
+      } else if (below) {
+        noteEl.className = "calc-note warn";
+        noteEl.textContent = (cfg.minNote || ("Minimum is " + fmt(min) + ".")) + " (Add " + fmt(min - t) + " more.)";
+      } else {
+        noteEl.className = "calc-note ok";
+        noteEl.textContent = "✓ You're above the " + fmt(min) + " minimum — ready when you are.";
+      }
+      ctaEl.disabled = below || !state.length;
+      root.classList.toggle("is-below", below || !state.length);
+    }
+
+    /* drag a catalog card → drop into the quote */
+    if (catalog) {
+      catalog.addEventListener("dragstart", function (e) {
+        var card = e.target.closest(".calc-card"); if (!card) return;
+        drag = { type: "add", svc: +card.getAttribute("data-svc") };
+        card.classList.add("dragging");
+        e.dataTransfer.effectAllowed = "copy";
+        try { e.dataTransfer.setData("text/plain", "add"); } catch (x) {}
+      });
+      catalog.addEventListener("dragend", function () {
+        catalog.querySelectorAll(".dragging").forEach(function (c) { c.classList.remove("dragging"); });
+        drag = null;
+      });
+      catalog.addEventListener("click", function (e) {
+        var b = e.target.closest(".calc-add"); if (!b) return;
+        add(+b.getAttribute("data-svc"), 1);
+      });
+    }
+
+    drop.addEventListener("dragover", function (e) {
+      if (!drag) return;
+      e.preventDefault();
+      drop.classList.add("drag-over");
+      e.dataTransfer.dropEffect = drag.type === "add" ? "copy" : "move";
+    });
+    drop.addEventListener("dragleave", function (e) {
+      if (e.target === drop) drop.classList.remove("drag-over");
+    });
+    drop.addEventListener("drop", function (e) {
+      drop.classList.remove("drag-over");
+      if (drag && drag.type === "add") { e.preventDefault(); add(drag.svc, 1); }
+      drag = null;
+    });
+
+    /* quote line controls (delegated) */
+    drop.addEventListener("click", function (e) {
+      var b = e.target.closest("button[data-act]"); if (!b) return;
+      var line = b.closest(".calc-line"); var k = +line.getAttribute("data-k");
+      var act = b.getAttribute("data-act");
+      if (act === "inc") setQty(k, state[k].qty + 1);
+      else if (act === "dec") setQty(k, state[k].qty - 1);
+      else if (act === "rm") setQty(k, 0);
+    });
+    drop.addEventListener("change", function (e) {
+      if (e.target.tagName !== "INPUT") return;
+      var line = e.target.closest(".calc-line"); var k = +line.getAttribute("data-k");
+      setQty(k, parseInt(e.target.value, 10) || 0);
+    });
+
+    /* reorder quote lines by dragging the handle */
+    function wireLineDnD() {
+      var from = null;
+      drop.querySelectorAll(".calc-line").forEach(function (line) {
+        var k = +line.getAttribute("data-k");
+        var handle = line.querySelector(".calc-handle");
+        if (handle) {
+          handle.setAttribute("draggable", "true");
+          handle.addEventListener("dragstart", function (e) {
+            from = k; line.classList.add("dragging"); e.dataTransfer.effectAllowed = "move";
+            try { e.dataTransfer.setData("text/plain", "move"); } catch (x) {}
+          });
+          handle.addEventListener("dragend", function () { from = null; line.classList.remove("dragging"); });
+        }
+        line.addEventListener("dragover", function (e) { if (from === null) return; e.preventDefault(); line.classList.add("drop-target"); });
+        line.addEventListener("dragleave", function () { line.classList.remove("drop-target"); });
+        line.addEventListener("drop", function (e) {
+          if (from === null) return;
+          e.preventDefault(); e.stopPropagation(); line.classList.remove("drop-target");
+          if (from !== k) { var it = state.splice(from, 1)[0]; state.splice(k, 0, it); render(); }
+          from = null;
+        });
+      });
+    }
+
+    if (suggestEl) suggestEl.addEventListener("click", function () { state = recommended(); render(); });
+    if (clearEl) clearEl.addEventListener("click", function () { state = []; render(); });
+    if (ctaEl) ctaEl.addEventListener("click", function () {
+      if (ctaEl.disabled) return;
+      try { sessionStorage.setItem("astrosync-quote", JSON.stringify(summaryData())); } catch (e) {}
+      window.location.href = cfg.ctaHref || "contact.html";
+    });
+
+    render();
+  }
+
   function wireTransitions() {
     var internal = /\.html($|#|\?)/;
     document.addEventListener("click", function (e) {
@@ -628,11 +1022,14 @@
     var refs = buildNav(C, current);
     renderPage(C, current);
     buildFooter(C);
+    buildFloatingCta(C);
+    buildCursor();
     wireNav(refs);
     wireReveals();
     wireCounters();
     wireFAQ();
     wireForm();
+    wireCalculator(C);
     wireTransitions();
     requestAnimationFrame(function () { document.body.classList.add("loaded"); });
   }

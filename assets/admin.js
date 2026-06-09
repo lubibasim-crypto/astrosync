@@ -15,7 +15,7 @@
   var ALL_FONTS = ["Space Grotesk", "Syne", "Sora", "Fraunces", "Manrope", "Plus Jakarta Sans", "Inter", "DM Sans"];
 
   // Pages that have an editable layout / CTA band.
-  var PAGES = [["home", "Home"], ["services", "Services"], ["about", "About"], ["pricing", "Pricing"], ["work", "Work"], ["contact", "Contact"]];
+  var PAGES = [["home", "Home"], ["services", "Services"], ["about", "About"], ["pricing", "Pricing"], ["work", "Work"], ["resources", "Resources"], ["contact", "Contact"]];
   var CTA_PAGES = PAGES.filter(function (p) { return p[0] !== "contact"; });
   var ctaFields = [];
   CTA_PAGES.forEach(function (pg) {
@@ -106,10 +106,36 @@
           { k: "features", l: "Features (one per line)", t: "lines" }
         ] }] },
 
+    { id: "calculator", title: "Quote Calculator",
+      intro: "The drag-and-drop quote builder on the Pricing page. Set the copy, the minimum quote, and your service menu. Prices are per-unit; the 'recommended' quantities drive the Suggested Starter Package, which the calculator always tops up to at least your minimum. Drag the ⠿ handle to reorder services.",
+      fields: [
+        { p: "calculator.eyebrow", l: "Eyebrow" },
+        { p: "calculator.title", l: "Title", t: "area" },
+        { p: "calculator.sub", l: "Subtitle", t: "area" },
+        { p: "calculator.currency", l: "Currency symbol (e.g. $)" },
+        { p: "calculator.minQuote", l: "Minimum quote total", t: "range", min: 0, max: 2000, step: 25, unit: "" },
+        { p: "calculator.minNote", l: "Below-minimum note", t: "area" },
+        { p: "calculator.emptyNote", l: "Empty-quote hint", t: "area" },
+        { p: "calculator.suggestLabel", l: "Suggest-package button label" },
+        { p: "calculator.ctaLabel", l: "Request button — label" },
+        { p: "calculator.ctaHref", l: "Request button — link" }
+      ],
+      lists: [{ p: "calculator.services", l: "Calculator services", item: [
+          { k: "icon", l: "Icon (emoji)" },
+          { k: "name", l: "Service name" },
+          { k: "desc", l: "Short description", t: "area" },
+          { k: "price", l: "Price (number only, e.g. 60)" },
+          { k: "unit", l: "Unit label (e.g. per reel)" },
+          { k: "recommended", l: "Recommended qty (for starter package)" }
+        ] }] },
+
     { id: "testimonials", title: "Testimonials", fields: [
         { p: "testimonials.eyebrow", l: "Eyebrow" }, { p: "testimonials.title", l: "Title", t: "area" }
       ], lists: [{ p: "testimonials.items", l: "Quotes", item: [
-          { k: "quote", l: "Quote", t: "area" }, { k: "initials", l: "Initials" }, { k: "name", l: "Name" }, { k: "role", l: "Role / company" }
+          { k: "quote", l: "Quote", t: "area" }, { k: "initials", l: "Initials" }, { k: "name", l: "Name" }, { k: "role", l: "Role / company" },
+          { k: "media", l: "Reel/photo example (image upload)", t: "upload" },
+          { k: "video", l: "…or a video URL (YouTube / Vimeo / MP4) — used instead of the image" },
+          { k: "caption", l: "Explain this example", t: "area" }
         ] }] },
 
     { id: "faq", title: "FAQ", fields: [
@@ -132,8 +158,21 @@
     { id: "ctas", title: "CTA Bands", intro: "The call-to-action band near the bottom of each page. Use *word* for a teal highlight and a new line for a line break.",
       fields: ctaFields },
 
+    { id: "floatingCta", title: "Floating Button",
+      intro: "The floating “build your package” button shown on every page — a constant nudge into your quote funnel.",
+      fields: [
+        { p: "floatingCta.enabled", l: "Show the floating button", t: "bool" },
+        { p: "floatingCta.label", l: "Button label" },
+        { p: "floatingCta.href", l: "Button link (e.g. pricing.html)" }
+      ] },
+
+    { id: "blog", title: "Resources", custom: "blog",
+      intro: "Your blog / resources. Add articles with a Medium-style body — text, headings, images, videos and quotes. Each article ends with a funnel CTA that turns readers into leads. Drag the ⠿ handle to reorder articles and blocks." },
+
     { id: "footer", title: "Footer", fields: [
-        { p: "footer.tagline", l: "Tagline", t: "area" }, { p: "footer.email", l: "Email" }, { p: "footer.phone", l: "Phone" }, { p: "footer.copyright", l: "Copyright line" }
+        { p: "footer.tagline", l: "Tagline", t: "area" }, { p: "footer.email", l: "Email" }, { p: "footer.phone", l: "Phone" },
+        { p: "footer.mapLabel", l: "Map link label" }, { p: "footer.mapUrl", l: "Map link URL (Google Maps, etc.)" },
+        { p: "footer.copyright", l: "Copyright line" }
       ], lists: [
         { p: "footer.locations", l: "Locations", item: [{ k: "label", l: "Label" }, { k: "sub", l: "Subtitle" }] },
         { p: "socials", l: "Social links", item: [{ k: "network", l: "Network (instagram/facebook/tiktok/youtube/linkedin/x)" }, { k: "href", l: "URL" }] }
@@ -364,6 +403,8 @@
       var cur = a[idx][it.k];
       if (it.t === "bool") card.appendChild(boolField(it.l, cur, function (v) { a[idx][it.k] = v; }));
       else if (it.t === "lines") card.appendChild(linesField(it.l, cur, function (v) { a[idx][it.k] = v; }));
+      else if (it.t === "upload") card.appendChild(uploadField(it.l, cur, function (v) { a[idx][it.k] = v; }));
+      else if (it.t === "select") card.appendChild(selectField(it.l, cur, it.opts, function (v) { a[idx][it.k] = v; }, it.optLabels));
       else card.appendChild(textField(it.l, cur, function (v) { a[idx][it.k] = v; }, it.t === "area"));
     });
     return card;
@@ -450,6 +491,22 @@
 
     function fmtDate(ts) { try { return new Date(ts * 1000).toLocaleString(); } catch (e) { return ""; } }
     function metaRow(card, label, v) { if (!v) return; card.appendChild(el("div", "sub-meta", "<b>" + esc(label) + ":</b> " + esc(v))); }
+    function money(cur, n) { return esc(cur) + Math.round(+n || 0).toLocaleString(); }
+    function quoteBlock(q) {
+      var cur = q.currency || "$";
+      var rows = q.items.map(function (it) {
+        return '<li><span>' + esc(it.qty + " × " + it.name) + "</span><span>" + money(cur, it.total) + "</span></li>";
+      }).join("");
+      return el("div", "sub-quote",
+        '<div class="sub-quote-h">Requested quote</div><ul class="sub-quote-list">' + rows +
+        '</ul><div class="sub-quote-total"><span>Total</span><b>' + money(cur, q.total) + "</b></div>");
+    }
+    function quoteSummary(q) {
+      if (!q || !q.items || !q.items.length) return "";
+      var cur = q.currency || "$";
+      return q.items.map(function (it) { return it.qty + "x " + it.name; }).join("; ") +
+        " | Total " + cur + Math.round(+q.total || 0);
+    }
     function row(s) {
       var card = el("div", "sub-card");
       var head = el("div", "sub-head");
@@ -463,6 +520,7 @@
       metaRow(card, "Email", s.email); metaRow(card, "Business", s.business);
       metaRow(card, "Service", s.service); metaRow(card, "Budget", s.budget);
       if (s.message) { var m = el("div", "sub-msg"); m.textContent = s.message; card.appendChild(m); }
+      if (s.quote && s.quote.items && s.quote.items.length) card.appendChild(quoteBlock(s.quote));
       if (s.email) { var a = el("a", "sub-reply"); a.href = "mailto:" + encodeURIComponent(s.email); a.textContent = "✉ Reply by email"; card.appendChild(a); }
       return card;
     }
@@ -490,9 +548,9 @@
       if (!current.length) { toast("Nothing to export.", true); return; }
       var cols = ["fname", "lname", "email", "business", "service", "budget", "message"];
       function q(v) { v = v == null ? "" : String(v); return '"' + v.replace(/"/g, '""') + '"'; }
-      var header = ["date", "first name", "last name", "email", "business", "service", "budget", "message"].map(q).join(",");
+      var header = ["date", "first name", "last name", "email", "business", "service", "budget", "message", "quote"].map(q).join(",");
       var rows = current.slice().reverse().map(function (s) {
-        return [q(fmtDate(s.ts))].concat(cols.map(function (c) { return q(s[c]); })).join(",");
+        return [q(fmtDate(s.ts))].concat(cols.map(function (c) { return q(s[c]); })).concat([q(quoteSummary(s.quote))]).join(",");
       });
       var blob = new Blob([header + "\n" + rows.join("\n")], { type: "text/csv" });
       var a = el("a"); a.href = URL.createObjectURL(blob); a.download = "submissions.csv"; a.click();
@@ -501,6 +559,145 @@
     refresh.addEventListener("click", load);
     exportBtn.addEventListener("click", exportCsv);
     load();
+    return wrap;
+  }
+
+  /* ---------- blog / resources editor ---------- */
+  var CTA_TYPES = ["calculator", "contact", "link"];
+  var CTA_TYPE_LABELS = { calculator: "Open the quote calculator", contact: "Open the contact form", link: "Custom link" };
+  var BLOCK_TYPES = ["paragraph", "heading", "image", "video", "quote"];
+  var BLOCK_LABELS = { paragraph: "Paragraph", heading: "Heading", image: "Image", video: "Video", quote: "Quote" };
+
+  function ensureBlog() {
+    if (!data.blog || typeof data.blog !== "object") data.blog = clone(DEFAULTS.blog || {});
+    if (!Array.isArray(data.blog.posts)) data.blog.posts = [];
+    if (!data.blog.defaultCta) data.blog.defaultCta = { type: "calculator", label: "", href: "" };
+  }
+
+  function blogEditor() {
+    ensureBlog();
+    var openSet = (typeof WeakSet !== "undefined") ? new WeakSet() : null; // expanded posts (not serialized)
+    function isOpen(p) { return openSet ? openSet.has(p) : !!p.__open; }
+    function toggle(p) { if (openSet) { openSet.has(p) ? openSet.delete(p) : openSet.add(p); } else { p.__open = !p.__open; } }
+
+    var wrap = el("div", "blog-editor");
+
+    var meta = el("div");
+    [
+      { p: "blog.eyebrow", l: "Eyebrow" },
+      { p: "blog.title", l: "Page title (use *teal* highlight)", t: "area" },
+      { p: "blog.sub", l: "Page subtitle", t: "area" },
+      { p: "blog.recommendedTitle", l: "“Keep reading” heading" },
+      { p: "blog.ctaHeading", l: "Article CTA heading" }
+    ].forEach(function (f) {
+      meta.appendChild(textField(f.l, getPath(data, f.p), function (v) { setPath(data, f.p, v); }, f.t === "area"));
+    });
+    wrap.appendChild(meta);
+
+    wrap.appendChild(el("div", "section-label", "Articles"));
+    var listEl = el("div", "blog-list"); wrap.appendChild(listEl);
+    var addBar = el("div", "layout-add"); wrap.appendChild(addBar);
+
+    function posts() { ensureBlog(); return data.blog.posts; }
+
+    function render() {
+      var a = posts(); listEl.innerHTML = "";
+      a.forEach(function (post, idx) { listEl.appendChild(postCard(a, idx)); });
+      enableDnD(listEl, a, render);
+      addBar.innerHTML = "";
+      var add = el("button", "add-btn", "+ Add article"); add.type = "button";
+      add.addEventListener("click", function () {
+        posts().push({ slug: "new-post-" + Date.now(), title: "Untitled article", excerpt: "", category: "", author: "AstroSync Team", date: "", read: "", cover: "", cta: { type: "calculator", label: "", href: "" }, blocks: [{ type: "paragraph", text: "" }] });
+        render();
+      });
+      addBar.appendChild(add);
+    }
+
+    function postCard(a, idx) {
+      var post = a[idx];
+      var card = el("div", "list-item blog-post-item");
+      card.setAttribute("data-di", idx);
+      var head = el("div", "list-item-head");
+      head.appendChild(el("span", "drag-handle", "⠿"));
+      head.appendChild(el("span", "tag", "#" + (idx + 1) + " · " + esc(post.title || "Untitled")));
+      var collapse = el("button", "icon-btn", isOpen(post) ? "▾" : "▸"); collapse.type = "button"; collapse.title = "Expand / collapse";
+      collapse.addEventListener("click", function () { toggle(post); render(); });
+      var del = el("button", "icon-btn del", "✕"); del.type = "button"; del.title = "Delete article";
+      del.addEventListener("click", function () { if (confirm("Delete this article?")) { a.splice(idx, 1); render(); } });
+      head.appendChild(collapse); head.appendChild(del);
+      card.appendChild(head);
+      if (!isOpen(post)) return card;
+
+      card.appendChild(textField("Title (use *teal* highlight)", post.title, function (v) { post.title = v; }));
+      card.appendChild(textField("Slug (URL id, e.g. my-post)", post.slug, function (v) { post.slug = v; }));
+      card.appendChild(textField("Excerpt (shown on the card)", post.excerpt, function (v) { post.excerpt = v; }, true));
+      var g = el("div", "grid2");
+      g.appendChild(textField("Category", post.category, function (v) { post.category = v; }));
+      g.appendChild(textField("Author", post.author, function (v) { post.author = v; }));
+      g.appendChild(textField("Date (e.g. 2026-06-02)", post.date, function (v) { post.date = v; }));
+      g.appendChild(textField("Read time (e.g. 5 min read)", post.read, function (v) { post.read = v; }));
+      card.appendChild(g);
+      card.appendChild(uploadField("Cover image", post.cover, function (v) { post.cover = v; }));
+
+      card.appendChild(el("div", "section-label", "Funnel CTA (under the article)"));
+      if (!post.cta) post.cta = { type: "calculator", label: "", href: "" };
+      card.appendChild(selectField("CTA action", post.cta.type, CTA_TYPES, function (v) { post.cta.type = v; }, CTA_TYPE_LABELS));
+      card.appendChild(textField("CTA label (optional)", post.cta.label, function (v) { post.cta.label = v; }));
+      card.appendChild(textField("CTA link (only for Custom link; otherwise auto)", post.cta.href, function (v) { post.cta.href = v; }));
+
+      card.appendChild(el("div", "section-label", "Article body"));
+      if (!Array.isArray(post.blocks)) post.blocks = [];
+      var blocksEl = el("div", "blocks-list"); card.appendChild(blocksEl);
+      renderBlocks(post, blocksEl);
+      var bAddBar = el("div", "layout-add");
+      var bSel = el("select", "layout-add-select");
+      BLOCK_TYPES.forEach(function (t) { var op = el("option"); op.value = t; op.textContent = BLOCK_LABELS[t]; bSel.appendChild(op); });
+      var bAdd = el("button", "add-btn", "+ Add block"); bAdd.type = "button";
+      bAdd.addEventListener("click", function () {
+        var t = bSel.value, blk;
+        if (t === "image") blk = { type: "image", src: "", caption: "" };
+        else if (t === "video") blk = { type: "video", url: "", caption: "" };
+        else if (t === "quote") blk = { type: "quote", text: "", cite: "" };
+        else blk = { type: t, text: "" };
+        post.blocks.push(blk); renderBlocks(post, blocksEl);
+      });
+      bAddBar.appendChild(bSel); bAddBar.appendChild(bAdd);
+      card.appendChild(bAddBar);
+      return card;
+    }
+
+    function renderBlocks(post, blocksEl) {
+      blocksEl.innerHTML = "";
+      post.blocks.forEach(function (blk, bi) {
+        var row = el("div", "block-item");
+        row.setAttribute("data-di", bi);
+        var bhead = el("div", "list-item-head");
+        bhead.appendChild(el("span", "drag-handle", "⠿"));
+        bhead.appendChild(el("span", "tag", BLOCK_LABELS[blk.type] || blk.type));
+        var bdel = el("button", "icon-btn del", "✕"); bdel.type = "button";
+        bdel.addEventListener("click", function () { post.blocks.splice(bi, 1); renderBlocks(post, blocksEl); });
+        bhead.appendChild(bdel);
+        row.appendChild(bhead);
+        if (blk.type === "image") {
+          row.appendChild(uploadField("Image", blk.src, function (v) { blk.src = v; }));
+          row.appendChild(textField("Caption", blk.caption, function (v) { blk.caption = v; }));
+        } else if (blk.type === "video") {
+          row.appendChild(textField("Video URL (YouTube / Vimeo / MP4)", blk.url, function (v) { blk.url = v; }));
+          row.appendChild(textField("Caption", blk.caption, function (v) { blk.caption = v; }));
+        } else if (blk.type === "quote") {
+          row.appendChild(textField("Quote", blk.text, function (v) { blk.text = v; }, true));
+          row.appendChild(textField("Attribution", blk.cite, function (v) { blk.cite = v; }));
+        } else if (blk.type === "heading") {
+          row.appendChild(textField("Heading text", blk.text, function (v) { blk.text = v; }));
+        } else {
+          row.appendChild(textField("Paragraph", blk.text, function (v) { blk.text = v; }, true));
+        }
+        blocksEl.appendChild(row);
+      });
+      enableDnD(blocksEl, post.blocks, function () { renderBlocks(post, blocksEl); });
+    }
+
+    render();
     return wrap;
   }
 
@@ -520,6 +717,7 @@
       if (sec.intro) panel.appendChild(el("p", "panel-intro", esc(sec.intro)));
       if (sec.custom === "layout") { panel.appendChild(layoutEditor()); panels.appendChild(panel); return; }
       if (sec.custom === "submissions") { panel.appendChild(submissionsEditor()); panels.appendChild(panel); return; }
+      if (sec.custom === "blog") { panel.appendChild(blogEditor()); panels.appendChild(panel); return; }
       var isTypo = sec.id === "typography";
       (sec.fields || []).forEach(function (fld) {
         var onIn = function (v) { setPath(data, fld.p, v); if (isTypo) applyPreview(); };

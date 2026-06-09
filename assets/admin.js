@@ -776,7 +776,9 @@
   function importJson(file) {
     var fr = new FileReader();
     fr.onload = function () {
-      try { data = JSON.parse(fr.result); buildPanels(); toast("Imported. Review, then Save."); }
+      // Backfill any keys the imported file is missing (e.g. calculator/blog)
+      // from defaults, so a partial import can never blank out a section.
+      try { data = mergeDefaults(JSON.parse(fr.result)); buildPanels(); toast("Imported. Review, then Save."); }
       catch (e) { toast("Invalid JSON file.", true); }
     };
     fr.readAsText(file);

@@ -120,15 +120,15 @@ window.ASTRO_DEFAULT_CONTENT = {
     ctaHref: "contact.html",
     suggestLabel: "✦ Suggest a starter package",
     services: [
-      { icon: "🎬", name: "Instagram Reel",            desc: "Editing, captions, audio and on-brand text — built for the algorithm.", price: 60, unit: "per reel",     recommended: 5 },
-      { icon: "🖼️", name: "Graphic Post",              desc: "Static, fully branded feed design.",                                   price: 25, unit: "per post",     recommended: 4 },
-      { icon: "🎠", name: "Carousel Post",              desc: "5–10 branded, swipeable slides.",                                      price: 15, unit: "per carousel", recommended: 2 },
-      { icon: "🔍", name: "Profile Analysis",           desc: "Deep dive: followers, engagement and growth audit.",                   price: 65, unit: "one-time",     recommended: 1 },
-      { icon: "🔗", name: "Linktree / Bio Link Setup",  desc: "Designed bio link with tracked UTMs.",                                 price: 25, unit: "one-time",     recommended: 0 },
+      { icon: "🎬", name: "1 Instagram Reel",          desc: "Editing, captions, audio and on-brand text — built for the algorithm.", price: 60, unit: "per reel",     recommended: 5 },
+      { icon: "🖼️", name: "1 Graphic Post",             desc: "Static, fully branded feed design.",                                   price: 25, unit: "per post",     recommended: 4 },
+      { icon: "🎠", name: "1 Carousel Post",            desc: "5–10 branded, swipeable slides.",                                      price: 15, unit: "per carousel", recommended: 2 },
+      { icon: "🔍", name: "Profile analysis",           desc: "Deep dive: followers, engagement and growth audit.",                   price: 65, unit: "one-time",     recommended: 1 },
+      { icon: "🔗", name: "Linktree / bio link setup",  desc: "Designed bio link with tracked UTMs.",                                 price: 25, unit: "one-time",     recommended: 0 },
       { icon: "💬", name: "Instagram Community Hub",     desc: "Broadcast channel / close-friends setup.",                             price: 25, unit: "setup",        recommended: 0 },
-      { icon: "✍️", name: "SEO Caption Copy",            desc: "Keyword-optimised reel + post captions.",                              price: 20, unit: "per caption",  recommended: 3 },
-      { icon: "#️⃣", name: "Hashtag Research",            desc: "Niche, ranked hashtag set refreshed monthly.",                         price: 15, unit: "per month",    recommended: 1 },
-      { icon: "📊", name: "Month-End Report",           desc: "Reach, engagement, growth and insights.",                              price: 50, unit: "per month",    recommended: 1 }
+      { icon: "✍️", name: "SEO caption copy",            desc: "Keyword-optimised reel + post captions.",                              price: 20, unit: "per caption",  recommended: 3 },
+      { icon: "#️⃣", name: "Hashtag research",            desc: "Niche, ranked hashtag set refreshed monthly.",                         price: 15, unit: "per month",    recommended: 1 },
+      { icon: "📊", name: "Month-end report",           desc: "Reach, engagement, growth and insights.",                              price: 50, unit: "per month",    recommended: 1 }
     ]
   },
 

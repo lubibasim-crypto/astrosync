@@ -180,10 +180,52 @@ def _write_submissions(arr):
     os.replace(tmp, SUBMISSIONS_FILE)
 
 
+def clean_quote(q):
+    """Validate + normalize a quote object sent from the calculator.
+
+    Returns {currency, items:[{name,unit,price,qty,total}], total} or None.
+    """
+    if not isinstance(q, dict):
+        return None
+    raw_items = q.get("items")
+    if not isinstance(raw_items, list) or not raw_items:
+        return None
+    items = []
+    for it in raw_items[:50]:
+        if not isinstance(it, dict):
+            continue
+        try:
+            qty = int(float(it.get("qty", 0)))
+            price = float(it.get("price", 0))
+        except (ValueError, TypeError):
+            continue
+        if qty <= 0 or price < 0:
+            continue
+        items.append({
+            "name": str(it.get("name", "") or "")[:120],
+            "unit": str(it.get("unit", "") or "")[:60],
+            "price": round(price, 2),
+            "qty": qty,
+            "total": round(price * qty, 2),
+        })
+    if not items:
+        return None
+    try:
+        total = float(q.get("total", 0))
+    except (ValueError, TypeError):
+        total = 0
+    if total <= 0:
+        total = sum(i["total"] for i in items)
+    return {"currency": str(q.get("currency", "$") or "$")[:4], "items": items, "total": round(total, 2)}
+
+
 def save_submission(data):
     sub = {"id": secrets.token_hex(6), "ts": int(time.time())}
     for k in SUB_FIELDS:
         sub[k] = str(data.get(k, "") or "")[:2000]
+    q = clean_quote(data.get("quote"))
+    if q:
+        sub["quote"] = q
     with SUB_LOCK:
         arr = read_submissions()
         arr.append(sub)
@@ -225,6 +267,18 @@ def send_contact_email(sub):
         "Service:  " + sub.get("service", ""),
         "Budget:   " + sub.get("budget", ""),
         "", "Message:", sub.get("message", ""),
+    ]
+    q = sub.get("quote")
+    if q and q.get("items"):
+        cur = q.get("currency", "$")
+        money = lambda n: ("%g" % n)
+        lines.append("")
+        lines.append("Requested quote (from the calculator):")
+        for it in q["items"]:
+            lines.append("  - %d x %s (%s%s %s) = %s%s" % (
+                it["qty"], it["name"], cur, money(it["price"]), it.get("unit", ""), cur, money(it["total"])))
+        lines.append("  Total: %s%s" % (cur, money(q["total"])))
+    lines += [
         "", "Received: " + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(sub.get("ts", time.time()))),
     ]
     msg = EmailMessage()

@@ -74,11 +74,26 @@ input,textarea,select{font-family:inherit}
 .checkbox input{width:18px;height:18px;accent-color:var(--a-teal)}
 
 /* color pickers */
-.colors{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem}
+.colors{display:block}
+.color-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem;margin-bottom:.4rem}
+.color-group-head{font-size:.82rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--a-text);margin:1.6rem 0 .8rem;display:flex;flex-direction:column;gap:.25rem}
+.color-group-head span{font-size:.72rem;font-weight:500;letter-spacing:0;text-transform:none;color:var(--a-muted)}
 .color-field{background:var(--a-panel);border:1px solid var(--a-border);border-radius:10px;padding:1rem;display:flex;flex-direction:column;gap:.6rem}
 .color-field .row{display:flex;align-items:center;gap:.6rem}
 .color-field input[type=color]{width:42px;height:42px;border:none;border-radius:8px;background:none;cursor:pointer}
 .color-field input[type=text]{flex:1;background:var(--a-bg);border:1px solid var(--a-border);border-radius:8px;padding:.5rem;color:var(--a-text);font-family:var(--a-mono);font-size:.82rem}
+
+/* live theme preview */
+.theme-preview{border:1px solid var(--a-border);border-radius:12px;overflow:hidden;margin-bottom:1.4rem;background:var(--a-panel)}
+.tp-head{display:flex;align-items:center;justify-content:space-between;padding:.7rem 1rem;border-bottom:1px solid var(--a-border)}
+.tp-stage{padding:1.6rem;transition:background .2s}
+.tp-card{border:1px solid;border-radius:14px;padding:1.4rem}
+.tp-title{font-size:1.15rem;font-weight:700;margin-bottom:.4rem}
+.tp-text{font-size:.86rem;margin-bottom:1.1rem}
+.tp-row{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap}
+.tp-btn{padding:.5rem .95rem;border-radius:8px;font-size:.82rem;font-weight:700}
+.tp-chip{padding:.4rem .75rem;border-radius:99px;font-size:.78rem;border:1px solid}
+.tp-link{font-size:.82rem;font-weight:600}
 
 /* list editor */
 .list{display:flex;flex-direction:column;gap:.9rem}

@@ -8,6 +8,7 @@ web app's WSGI config at `application` below (see README → Deploy).
 import json
 import mimetypes
 import os
+import re
 
 import server  # reuses helpers (read_content/write_content/auth) + runs init_auth on import
 
@@ -35,7 +36,7 @@ def _json(start_response, obj, status="200 OK"):
     return [body]
 
 
-def _serve_static(path, start_response):
+def _serve_static(path, environ, start_response):
     rel = path.lstrip("/")
     if rel == "" or rel.endswith("/"):
         rel += "index.html"
@@ -44,14 +45,40 @@ def _serve_static(path, start_response):
         return _json(start_response, {"error": "not found"}, "404 Not Found")
     ctype = mimetypes.guess_type(full)[0] or "application/octet-stream"
     try:
-        with open(full, "rb") as f:
-            body = f.read()
+        size = os.path.getsize(full)
     except OSError:
         return _json(start_response, {"error": "not found"}, "404 Not Found")
-    headers = [("Content-Type", ctype), ("Content-Length", str(len(body)))]
-    if path.endswith((".woff2", ".svg", ".jpg", ".png")):
+
+    # Honour HTTP Range requests (needed for <video> seeking + Safari/iOS playback).
+    rng = environ.get("HTTP_RANGE")
+    start, end, partial = 0, size - 1, False
+    if rng:
+        m = re.match(r"bytes=(\d*)-(\d*)", rng.strip())
+        if m and (m.group(1) or m.group(2)):
+            if m.group(1):
+                start = int(m.group(1))
+                end = int(m.group(2)) if m.group(2) else size - 1
+            else:
+                start = max(0, size - int(m.group(2)))
+            if start >= size or start > end:
+                start_response("416 Requested Range Not Satisfiable", [("Content-Range", "bytes */%d" % size)])
+                return [b""]
+            end = min(end, size - 1)
+            partial = True
+
+    length = end - start + 1
+    try:
+        with open(full, "rb") as f:
+            f.seek(start)
+            body = f.read(length)
+    except OSError:
+        return _json(start_response, {"error": "not found"}, "404 Not Found")
+    headers = [("Content-Type", ctype), ("Content-Length", str(length)), ("Accept-Ranges", "bytes")]
+    if partial:
+        headers.append(("Content-Range", "bytes %d-%d/%d" % (start, end, size)))
+    if path.endswith((".woff2", ".svg", ".jpg", ".png", ".mp4", ".webm")):
         headers.append(("Cache-Control", "public, max-age=86400"))
-    start_response("200 OK", headers)
+    start_response("206 Partial Content" if partial else "200 OK", headers)
     return [body]
 
 
@@ -113,7 +140,7 @@ def application(environ, start_response):
         data = _read_json(environ) or {}
         src = server.save_upload(data.get("name", ""), data.get("dataUrl", ""))
         if not src:
-            return _json(start_response, {"error": "invalid image (png/jpg/svg/webp/gif, max 3MB)"}, "400 Bad Request")
+            return _json(start_response, {"error": "invalid file (image png/jpg/svg/webp/gif <= 3MB, or video mp4/webm/ogg/mov <= 50MB)"}, "400 Bad Request")
         return _json(start_response, {"ok": True, "src": src})
 
-    return _serve_static(path, start_response)
+    return _serve_static(path, environ, start_response)

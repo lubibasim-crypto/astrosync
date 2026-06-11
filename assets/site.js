@@ -129,14 +129,40 @@
     if (t.headingScale) root.style.setProperty("--type-heading-scale", t.headingScale);
   }
 
-  /* ---------- Brand colors (admin editable) ---------- */
+  /* ---------- Brand colors + full theme (admin editable) ---------- */
+  // Maps the editable per-mode keys to their CSS custom properties.
+  var THEME_VAR_MAP = {
+    bg: "--bg", bg2: "--bg-2", surface: "--surface", raised: "--surface-raised",
+    border: "--border", text: "--text", muted: "--text-muted", onBrand: "--on-brand"
+  };
   function applyColors(theme) {
     if (!theme) return;
     var root = document.documentElement;
+    // Shared brand palette — applies in both modes (gradients derive from these).
     if (theme.teal) root.style.setProperty("--brand-teal", theme.teal);
     if (theme.deep) root.style.setProperty("--brand-deep", theme.deep);
     if (theme.navy) root.style.setProperty("--brand-navy", theme.navy);
     if (theme.mint) root.style.setProperty("--brand-mint", theme.mint);
+    // Per-mode surface/text palette. Injected as a stylesheet so the dark/light
+    // toggle keeps working — each mode's variables override the defaults in site.css.
+    var modes = [["dark", ':root, [data-theme="dark"]', theme.dark], ["light", '[data-theme="light"]', theme.light]];
+    var css = "";
+    modes.forEach(function (m) {
+      var vals = m[2]; if (!vals) return;
+      var decls = "";
+      for (var k in THEME_VAR_MAP) {
+        if (Object.prototype.hasOwnProperty.call(THEME_VAR_MAP, k) && vals[k]) decls += THEME_VAR_MAP[k] + ":" + vals[k] + ";";
+      }
+      if (decls) css += m[1] + "{" + decls + "}";
+    });
+    var styleEl = document.getElementById("astro-theme-vars");
+    if (!css) { if (styleEl) styleEl.textContent = ""; return; }
+    if (!styleEl) {
+      styleEl = document.createElement("style");
+      styleEl.id = "astro-theme-vars";
+      document.head.appendChild(styleEl); // appended last → wins over site.css defaults
+    }
+    styleEl.textContent = css;
   }
 
   /* ---------- Nav links ---------- */
@@ -209,10 +235,25 @@
     var locs = ((C.footer && C.footer.locations) || []).map(function (l) {
       return '<div class="loc" style="margin-bottom:.9rem"><b>' + esc(l.label) + "</b>" + esc(l.sub) + "</div>";
     }).join("");
-    var mapUrl = get(C, "footer.mapUrl"), mapLabel = get(C, "footer.mapLabel") || "View on map";
-    var mapLink = (mapUrl != null && mapUrl !== "")
-      ? '<a class="footer-map" href="' + esc(mapUrl) + '" target="_blank" rel="noopener">' + PIN_SVG + "<span>" + esc(mapLabel) + "</span></a>"
-      : "";
+    // Footer map: a clickable Google-Maps "picture" driven by an editable address.
+    // Uses the key-free output=embed map; the iframe is non-interactive so the whole
+    // card acts as one link that opens Google Maps in a new tab.
+    var mapQuery = get(C, "footer.mapQuery");
+    var mapUrl = get(C, "footer.mapUrl");
+    var mapLabel = get(C, "footer.mapLabel") || "View on Google Maps";
+    var mapLink = "";
+    if (mapQuery != null && String(mapQuery).trim() !== "") {
+      var q = encodeURIComponent(String(mapQuery).trim());
+      var embed = "https://www.google.com/maps?q=" + q + "&z=14&output=embed";
+      var link = (mapUrl != null && mapUrl !== "") ? mapUrl : ("https://www.google.com/maps/search/?api=1&query=" + q);
+      mapLink =
+        '<a class="footer-map-card" href="' + esc(link) + '" target="_blank" rel="noopener" aria-label="' + esc(mapLabel) + ' — open in Google Maps">' +
+          '<iframe class="footer-map-frame" src="' + esc(embed) + '" loading="lazy" tabindex="-1" title="' + esc(mapLabel) + '" referrerpolicy="no-referrer-when-downgrade"></iframe>' +
+          '<span class="footer-map-bar">' + PIN_SVG + '<span class="fm-label">' + esc(mapLabel) + '</span><span class="fm-open">Open in Maps →</span></span>' +
+        "</a>";
+    } else if (mapUrl != null && mapUrl !== "") {
+      mapLink = '<a class="footer-map" href="' + esc(mapUrl) + '" target="_blank" rel="noopener">' + PIN_SVG + "<span>" + esc(mapLabel) + "</span></a>";
+    }
     f.innerHTML =
       '<div class="container"><div class="footer-top">' +
         "<div>" +
@@ -325,12 +366,15 @@
     services: function (C, opt) {
       var items = get(C, "services.items") || [];
       if (opt.limit) items = items.slice(0, +opt.limit);
+      var isTeaser = opt.variant === "teaser";
       return items.map(function (s, i) {
         var num = ("0" + (i + 1)).slice(-2);
-        var tag = (opt.variant !== "teaser" && s.tag) ? '<span class="tag">' + esc(s.tag) + "</span>" : "";
-        var enter = opt.variant === "teaser" ? "ENTER" : "GET STARTED";
-        return '<a class="card svc-card reveal' + (i % 3 ? " d" + (i % 3) : "") + '" href="' +
-               (opt.variant === "teaser" ? "services.html" : "contact.html") + '">' + tag +
+        var tag = (!isTeaser && s.tag) ? '<span class="tag">' + esc(s.tag) + "</span>" : "";
+        // Teaser cards (home) stay a uniform "ENTER" funnel to the services page;
+        // full cards (services page) use each card's editable CTA label + link.
+        var enter = isTeaser ? "ENTER" : esc(s.cta || "Get Started");
+        var href = isTeaser ? "services.html" : (s.ctaHref || "contact.html");
+        return '<a class="card svc-card reveal' + (i % 3 ? " d" + (i % 3) : "") + '" href="' + esc(href) + '">' + tag +
                '<div class="svc-num">' + num + "</div><h3>" + esc(s.title) + "</h3><p>" + esc(s.text) +
                '</p><span class="svc-enter">' + enter + " <span>→</span></span></a>";
       }).join("");
@@ -361,15 +405,7 @@
     testimonials: function (C, opt) {
       var items = get(C, "testimonials.items") || [];
       if (opt.limit) items = items.slice(0, +opt.limit);
-      return items.map(function (t, i) {
-        var media = t.video ? videoEmbed(t.video, "tm-media")
-                  : (t.media ? '<div class="tm-media"><img src="' + esc(t.media) + '" alt="' + esc((t.name || "") + " example") + '" loading="lazy"></div>' : "");
-        var cap = (media && t.caption) ? '<p class="tm-cap">' + esc(t.caption) + "</p>" : "";
-        return '<div class="card quote-card reveal' + (i % 3 ? " d" + (i % 3) : "") + '">' + media + cap +
-               '<div class="stars">★★★★★</div>' +
-               "<blockquote>" + esc(t.quote) + '</blockquote><div class="who"><div class="avatar">' + esc(t.initials) +
-               '</div><div><div class="name">' + esc(t.name) + '</div><div class="role">' + esc(t.role) + "</div></div></div></div>";
-      }).join("");
+      return items.map(testimonialCard).join("");
     },
     faq: function (C) {
       return (get(C, "faq.items") || []).map(function (f, i) {
@@ -454,8 +490,69 @@
     var vm = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
     var src = yt ? ("https://www.youtube.com/embed/" + yt[1]) : (vm ? ("https://player.vimeo.com/video/" + vm[1]) : "");
     if (src) return '<div class="' + cls + '"><iframe src="' + esc(src) + '" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>';
-    if (/\.(mp4|webm|ogg)(\?|#|$)/i.test(url)) return '<div class="' + cls + '"><video src="' + esc(url) + '" controls preload="metadata"></video></div>';
+    if (/\.(mp4|webm|ogg|ogv|mov)(\?|#|$)/i.test(url)) return '<div class="' + cls + '"><video src="' + esc(url) + '" controls preload="metadata"></video></div>';
     return '<a class="' + cls + ' video-link" href="' + esc(url) + '" target="_blank" rel="noopener">▶ Watch video</a>';
+  }
+  // True when a URL points at a directly-playable video file (vs a YouTube/Vimeo page).
+  function isVideoFile(url) {
+    return /\.(mp4|webm|ogg|ogv|mov)(\?|#|$)/i.test(url || "") || /^data:video\//i.test(url || "");
+  }
+  // One testimonial rendered as a quote card (used for non-video testimonials).
+  function testimonialCard(t, i) {
+    var media = t.video ? videoEmbed(t.video, "tm-media")
+              : (t.media ? '<div class="tm-media"><img src="' + esc(t.media) + '" alt="' + esc((t.name || "") + " example") + '" loading="lazy"></div>' : "");
+    var cap = (media && t.caption) ? '<p class="tm-cap">' + esc(t.caption) + "</p>" : "";
+    return '<div class="card quote-card reveal' + (i % 3 ? " d" + (i % 3) : "") + '">' + media + cap +
+           '<div class="stars">★★★★★</div>' +
+           "<blockquote>" + esc(t.quote) + '</blockquote><div class="who"><div class="avatar">' + esc(t.initials) +
+           '</div><div><div class="name">' + esc(t.name) + '</div><div class="role">' + esc(t.role) + "</div></div></div></div>";
+  }
+  // One card on the orbit arc (uses the reel-frame styling for the inner content).
+  function orbitCard(t, i) {
+    var src = String(t.video || "");
+    var fileLike = isVideoFile(src);
+    var media = fileLike
+      ? '<video class="reel-video" src="' + esc(src) + '" playsinline muted loop preload="metadata"></video>'
+      : videoEmbed(src, "reel-embed");
+    var name = esc(t.name || ""), role = esc(t.role || ""), initials = esc(t.initials || "");
+    var quote = esc(t.quote || t.caption || "");
+    var who = (name || initials)
+      ? '<div class="reel-who">' + (initials ? '<span class="reel-avatar">' + initials + "</span>" : "") +
+        '<span class="reel-id"><b>' + name + "</b>" + (role ? "<span>" + role + "</span>" : "") + "</span></div>"
+      : "";
+    var caption = quote ? '<p class="reel-quote">' + quote + "</p>" : "";
+    var sound = fileLike ? '<button class="reel-sound" type="button" aria-label="Toggle sound"></button>' : "";
+    var playIco = fileLike ? '<span class="reel-play" aria-hidden="true">▶</span>' : "";
+    return '<article class="orbit-card" data-i="' + i + '">' +
+             '<div class="reel-frame">' + media + sound +
+               '<span class="reel-tag">▶ Reel</span>' + playIco +
+               '<div class="reel-grad"></div>' +
+               '<div class="reel-meta">' + caption + who + "</div>" +
+             "</div></article>";
+  }
+  // Orbit arc carousel — cards fanned along a circle. The section pins to the
+  // viewport and vertical scroll scrubs the wheel so each card sweeps to the
+  // upright front position, then the page continues (wired by wireOrbit()).
+  function orbitCarousel(C, reels, headHtml) {
+    var n = reels.length;
+    var cards = reels.map(orbitCard).join("");
+    var dots = reels.map(function (t, i) {
+      return '<button class="orbit-dot" type="button" aria-label="Testimonial ' + (i + 1) + '"></button>';
+    }).join("");
+    // Extra scroll distance per card (beyond the one-viewport pin) so the scrub feels natural.
+    var trackH = "calc(100vh + " + ((n - 1) * 62) + "vh)";
+    return '<section class="section orbit-section">' +
+             '<div class="orbit-track" data-orbit data-n="' + n + '" style="height:' + trackH + '">' +
+               '<div class="orbit-pin"><div class="container orbit-inner">' +
+                 (headHtml || "") +
+                 '<div class="orbit-stage" tabindex="0" aria-roledescription="carousel">' +
+                   '<div class="orbit-floor" aria-hidden="true"></div>' + cards +
+                 "</div>" +
+                 '<div class="orbit-foot"><div class="orbit-dots">' + dots + "</div>" +
+                   '<span class="orbit-hint">Scroll to explore</span></div>' +
+               "</div></div>" +
+             "</div>" +
+           "</section>";
   }
   // Resolve a blog post's funnel CTA (falls back to blog.defaultCta).
   function postCta(C, p) {
@@ -505,7 +602,7 @@
   var SECTIONS = {
     hero: function (C) {
       return '<header class="hero"><div class="container"><div class="hero-grid"><div>' +
-        '<div class="badge reveal"><span class="dot"></span><span>' + esc(get(C, "hero.badge")) + "</span></div>" +
+        '<div class="badge reveal"><span>' + esc(get(C, "hero.badge")) + "</span></div>" +
         '<h1 class="reveal d1">' + rich(get(C, "hero.title")) + "</h1>" +
         '<p class="lead reveal d2">' + esc(get(C, "hero.lead")) + "</p>" +
         '<div class="hero-ctas reveal d3">' +
@@ -552,7 +649,17 @@
     testimonials: function (C, opt) {
       opt = opt || {};
       var head = opt.head ? headBlock(C, "testimonials.eyebrow", "testimonials.title", null) : "";
-      return sectionWrap(head + '<div class="grid g-3">' + RENDER.testimonials(C, { limit: opt.limit }) + "</div>");
+      var items = get(C, "testimonials.items") || [];
+      if (opt.limit) items = items.slice(0, +opt.limit);
+      var reels = items.filter(function (t) { return t && t.video; });
+      var cards = items.filter(function (t) { return t && !t.video; });
+      var cardsHtml = cards.length ? '<div class="grid g-3">' + cards.map(testimonialCard).join("") + "</div>" : "";
+      if (reels.length) {
+        // Pinned orbit carries the section head inside its sticky area; any text-only
+        // testimonials follow as a normal grid below.
+        return orbitCarousel(C, reels, head) + (cardsHtml ? sectionWrap(cardsHtml) : "");
+      }
+      return sectionWrap(head + cardsHtml);
     },
     pricing: function (C) {
       var note = get(C, "pricing.note");
@@ -731,6 +838,118 @@
         var open = item.classList.toggle("open");
         a.style.maxHeight = open ? a.scrollHeight + "px" : "0px";
       });
+    });
+  }
+  // Orbit testimonial carousel: cards fan along a circular arc inside a pinned
+  // section; vertical scroll scrubs the wheel so each card sweeps to the upright
+  // front position, then the page continues.
+  function wireOrbit() {
+    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    document.querySelectorAll("[data-orbit]").forEach(function (root) {
+      var stage = root.querySelector(".orbit-stage");
+      var cards = stage ? Array.prototype.slice.call(stage.querySelectorAll(".orbit-card")) : [];
+      if (!cards.length) return;
+      var dots = Array.prototype.slice.call(root.querySelectorAll(".orbit-dot"));
+      var n = cards.length;
+      var STEP = 25;          // degrees between adjacent cards
+      var WINDOW = 76;        // cards beyond this angle from front are hidden
+      var wantSound = true, unlocked = false, visible = true, frontIdx = 0;
+      function soundOn() { return wantSound && unlocked; }
+
+      function geom() {
+        var w = stage.clientWidth, h = stage.clientHeight;
+        var r = Math.min(440, Math.max(220, w * 0.5));
+        return { cx: w / 2, cy: h * 0.40 + r, r: r };
+      }
+
+      function layout(rotation) {
+        var g = geom();
+        var bestIdx = 0, bestA = 1e9;
+        cards.forEach(function (card, i) {
+          var a = (i - (n - 1) / 2) * STEP - rotation;        // degrees from front
+          a = ((a + 180) % 360 + 360) % 360 - 180;            // normalise
+          var aa = Math.abs(a), rad = a * Math.PI / 180;
+          if (aa > WINDOW) { card.style.display = "none"; card.classList.remove("is-front"); var hv = card.querySelector("video"); if (hv) hv.pause(); return; }
+          card.style.display = "";
+          var x = g.cx + g.r * Math.sin(rad);
+          var y = g.cy - g.r * Math.cos(rad);
+          var scale = 0.46 + 0.54 * Math.cos(rad);
+          var op = Math.max(0, Math.min(1, (Math.cos(rad) - 0.02) / 0.5));
+          card.style.transform = "translate(" + x.toFixed(1) + "px," + y.toFixed(1) + "px) translate(-50%,-50%) rotate(" + a.toFixed(2) + "deg) scale(" + scale.toFixed(3) + ")";
+          card.style.opacity = op.toFixed(3);
+          card.style.zIndex = String(1000 - Math.round(aa * 5));
+          if (aa < bestA) { bestA = aa; bestIdx = i; }
+        });
+        frontIdx = bestIdx;
+        cards.forEach(function (card, i) {
+          var isFront = i === frontIdx;                       // the single closest card is always "front"
+          card.classList.toggle("is-front", isFront);
+          var v = card.querySelector("video");
+          if (v) {
+            v.muted = !(soundOn() && isFront);
+            if (isFront && visible && !card.classList.contains("is-paused")) {
+              var p = v.play();
+              if (p && p.catch) p.catch(function () { v.muted = true; v.play().catch(function () {}); });
+            } else { v.pause(); }
+          }
+          var s = card.querySelector(".reel-sound");
+          if (s) s.textContent = (isFront && soundOn()) ? "🔊" : "🔇";
+        });
+        dots.forEach(function (d, i) { d.classList.toggle("on", i === frontIdx); });
+      }
+
+      // Pinned scrub: the inner pin stays fixed while the tall track scrolls by.
+      // Map how far we've scrolled into the track to the rotation range so each
+      // card sweeps across the front exactly once.
+      function rotationFromScroll() {
+        var rect = root.getBoundingClientRect();
+        var vh = window.innerHeight || document.documentElement.clientHeight;
+        visible = rect.bottom > 0 && rect.top < vh;
+        var max = rect.height - vh;                            // scroll distance during the pin
+        var p = max > 0 ? (-rect.top) / max : 0.5;
+        p = Math.max(0, Math.min(1, p));
+        return (p - 0.5) * (n - 1) * STEP;
+      }
+      function rot() { return reduce ? 0 : rotationFromScroll(); }
+
+      // Browsers block sound until a user gesture; unmute the front card on the first.
+      function unlock() {
+        if (unlocked) return;
+        unlocked = true; layout(rot());
+        document.removeEventListener("pointerdown", unlock);
+        document.removeEventListener("keydown", unlock);
+        document.removeEventListener("touchstart", unlock);
+      }
+      document.addEventListener("pointerdown", unlock);
+      document.addEventListener("keydown", unlock);
+      document.addEventListener("touchstart", unlock, { passive: true });
+
+      cards.forEach(function (card) {
+        var sound = card.querySelector(".reel-sound");
+        if (sound) sound.addEventListener("click", function (e) { e.stopPropagation(); unlocked = true; wantSound = !wantSound; layout(rot()); });
+        card.addEventListener("click", function (e) {
+          if (e.target.closest(".reel-sound")) return;
+          if (!card.classList.contains("is-front")) return;   // only the front card toggles playback
+          var v = card.querySelector("video"); if (!v) return;
+          if (v.paused) { card.classList.remove("is-paused"); v.play().catch(function () {}); }
+          else { card.classList.add("is-paused"); v.pause(); }
+        });
+      });
+
+      if (reduce) {
+        // Reduced-motion: no pinning/scrub — release the track and show a static fan.
+        root.classList.add("orbit-static");
+        root.style.height = "auto";
+        layout(0);
+      } else {
+        var ticking = false;
+        var update = function () { layout(rotationFromScroll()); ticking = false; };
+        var onScroll = function () { if (!ticking) { ticking = true; requestAnimationFrame(update); } };
+        window.addEventListener("scroll", onScroll, { passive: true });
+        window.addEventListener("resize", onScroll);
+        update();   // place cards instantly, then enable transitions for scroll motion
+      }
+      requestAnimationFrame(function () { root.classList.add("orbit-ready"); });
     });
   }
   function wireForm() {
@@ -1012,6 +1231,45 @@
     });
   }
 
+  /* ---------- Logo intro (liquid-dot wordmark reveal) ---------- */
+  // A brand splash that plays once per session: an accent dot pops in, stretches
+  // into a pill that sweeps across to reveal the wordmark, then settles as a
+  // trailing dot. Built from theme CSS variables, so it follows the admin palette.
+  function playIntro(C) {
+    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var seen = false;
+    try { seen = sessionStorage.getItem("astro_intro_done") === "1"; } catch (e) {}
+    if (reduce || seen) return;
+    try { sessionStorage.setItem("astro_intro_done", "1"); } catch (e) {}
+
+    var name = (C.brand && C.brand.name) || "ASTROSYNC";
+    var accent = (C.brand && C.brand.accent) || "";
+    var head = name, tail = "";
+    var at = accent ? name.indexOf(accent) : -1;
+    if (at >= 0) { head = name.slice(0, at); tail = accent; }
+    var textHtml = esc(head) + (tail ? '<span class="grad-text">' + esc(tail) + "</span>" : "");
+
+    var ov = document.createElement("div");
+    ov.className = "logo-intro";
+    ov.setAttribute("role", "img");
+    ov.setAttribute("aria-label", name);
+    ov.innerHTML = '<div class="li-mark"><span class="li-text">' + textHtml + '</span><span class="li-sweep"></span></div>';
+    document.body.appendChild(ov);
+    document.body.classList.add("intro-active");
+
+    var closed = false;
+    function done() {
+      if (closed) return; closed = true;
+      ov.classList.add("li-out");
+      setTimeout(function () {
+        if (ov.parentNode) ov.parentNode.removeChild(ov);
+        document.body.classList.remove("intro-active");
+      }, 650);
+    }
+    var t = setTimeout(done, 2300);            // play through, then dissolve
+    ov.addEventListener("click", function () { clearTimeout(t); done(); }); // tap to skip
+  }
+
   /* ---------- Init ---------- */
   function init(C) {
     applyColors(C.theme);
@@ -1028,9 +1286,11 @@
     wireReveals();
     wireCounters();
     wireFAQ();
+    wireOrbit();
     wireForm();
     wireCalculator(C);
     wireTransitions();
+    playIntro(C);
     requestAnimationFrame(function () { document.body.classList.add("loaded"); });
   }
 

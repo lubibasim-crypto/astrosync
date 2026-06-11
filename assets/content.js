@@ -13,7 +13,13 @@ window.ASTRO_DEFAULT_CONTENT = {
 
   brand: { name: "ASTROSYNC", accent: "SYNC" },
 
-  theme: { teal: "#2ABFB0", deep: "#1B7A6E", navy: "#1A1F3C", mint: "#E0F4F2" },
+  // Full site theme. teal/deep/navy/mint are the shared brand palette; dark/light
+  // hold the surface + text colours for each mode (drives every page's UI).
+  theme: {
+    teal: "#2ABFB0", deep: "#1B7A6E", navy: "#1A1F3C", mint: "#E0F4F2",
+    dark:  { bg: "#0B1124", bg2: "#0E1730", surface: "#14203C", raised: "#1B2A4A", border: "#27395E", text: "#EAF6F4", muted: "#93B2B4", onBrand: "#06231F" },
+    light: { bg: "#EEF8F8", bg2: "#FFFFFF", surface: "#FFFFFF", raised: "#E0F4F2", border: "#CDE7E4", text: "#0F1623", muted: "#5A7470", onBrand: "#FFFFFF" }
+  },
 
   fonts: { display: "Sora", body: "Inter" },
 
@@ -59,12 +65,12 @@ window.ASTRO_DEFAULT_CONTENT = {
     title: "Full-Stack *Digital Marketing*\nUnder One Roof",
     sub: "From building your Instagram presence to running hyper-local Facebook ads — we cover every channel that matters for Houston businesses.",
     items: [
-      { tag: "Most Popular", title: "Social Media Management", text: "Platform strategy, daily posting, community management, and growth across Instagram, Facebook, TikTok, and LinkedIn." },
-      { tag: "High ROI", title: "Paid Social & Search Ads", text: "Data-driven Meta and Google campaigns geo-targeted to Houston ZIP codes. We manage creative, copy, and bidding to maximize local ROAS." },
-      { tag: "Viral-Ready", title: "Content Creation", text: "Reels, carousels, graphics, and short-form video — produced in brand, on schedule, optimized for platform algorithms." },
-      { tag: "Long-Term", title: "Local SEO & Google Business", text: "Rank #1 when Houston customers search for your category. Full GMB optimization, review strategy, and local citation building." },
-      { tag: "High LTV", title: "Email & SMS Campaigns", text: "Automated nurture sequences, promotional blasts, and re-engagement flows. Turn one-time visitors into loyal repeat customers." },
-      { tag: "Foundation", title: "Brand Identity & Strategy", text: "Logo, color systems, voice guides, and competitive positioning so your brand stands out before you spend a dollar on ads." }
+      { tag: "Most Popular", title: "Social Media Management", text: "Platform strategy, daily posting, community management, and growth across Instagram, Facebook, TikTok, and LinkedIn.", cta: "Get Started", ctaHref: "contact.html" },
+      { tag: "High ROI", title: "Paid Social & Search Ads", text: "Data-driven Meta and Google campaigns geo-targeted to Houston ZIP codes. We manage creative, copy, and bidding to maximize local ROAS.", cta: "Get Started", ctaHref: "contact.html" },
+      { tag: "Viral-Ready", title: "Content Creation", text: "Reels, carousels, graphics, and short-form video — produced in brand, on schedule, optimized for platform algorithms.", cta: "Get Started", ctaHref: "contact.html" },
+      { tag: "Long-Term", title: "Local SEO & Google Business", text: "Rank #1 when Houston customers search for your category. Full GMB optimization, review strategy, and local citation building.", cta: "Get Started", ctaHref: "contact.html" },
+      { tag: "High LTV", title: "Email & SMS Campaigns", text: "Automated nurture sequences, promotional blasts, and re-engagement flows. Turn one-time visitors into loyal repeat customers.", cta: "Get Started", ctaHref: "contact.html" },
+      { tag: "Foundation", title: "Brand Identity & Strategy", text: "Logo, color systems, voice guides, and competitive positioning so your brand stands out before you spend a dollar on ads.", cta: "Get Started", ctaHref: "contact.html" }
     ]
   },
 
@@ -257,9 +263,12 @@ window.ASTRO_DEFAULT_CONTENT = {
       { label: "Houston, TX 🇺🇸", sub: "Strategy & Account Management" },
       { label: "Rawalpindi, PK 🇵🇰", sub: "Creative & Execution" }
     ],
-    // Map pin shown in the footer — opens this link in a new tab when clicked.
-    mapLabel: "Find us on the map",
-    mapUrl: "https://www.google.com/maps/search/?api=1&query=Houston%2C+TX",
+    // Footer map "picture": mapQuery (an address or place) drives a clickable Google
+    // Maps card. mapLabel is the caption on it. mapUrl optionally overrides where a
+    // click goes (leave blank to auto-link to Google Maps for the query).
+    mapQuery: "Houston, TX",
+    mapLabel: "Houston, TX 🇺🇸",
+    mapUrl: "",
     copyright: "© 2026 AstroSync Agency. Houston, TX & Rawalpindi, PK."
   },
 

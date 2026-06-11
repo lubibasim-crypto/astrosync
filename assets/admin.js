@@ -33,12 +33,31 @@
         { p: "brand.accent", l: "Accent text (the part of the name shown in teal)" }
       ] },
 
-    { id: "theme", title: "Brand Colors", intro: "These drive the whole site palette. Changes apply live across every page.",
+    { id: "theme", title: "Brand Colors", intro: "Recolour the entire site — brand colours plus every background, surface and text shade, for both dark and light mode. Changes apply live across every page after you Save.",
       colors: [
+        { head: "Brand palette", note: "Buttons, links, gradients and accents. Used in both modes." },
         { p: "theme.teal", l: "Teal (primary)" },
-        { p: "theme.deep", l: "Deep Teal" },
+        { p: "theme.deep", l: "Deep teal (gradient end)" },
         { p: "theme.navy", l: "Navy (dark base)" },
-        { p: "theme.mint", l: "Mint (light accent)" }
+        { p: "theme.mint", l: "Mint (light accent)" },
+        { head: "Dark mode — backgrounds & text" },
+        { p: "theme.dark.bg", l: "Page background" },
+        { p: "theme.dark.bg2", l: "Section background" },
+        { p: "theme.dark.surface", l: "Card surface" },
+        { p: "theme.dark.raised", l: "Raised surface" },
+        { p: "theme.dark.border", l: "Borders & dividers" },
+        { p: "theme.dark.text", l: "Body & heading text" },
+        { p: "theme.dark.muted", l: "Muted / secondary text" },
+        { p: "theme.dark.onBrand", l: "Text on coloured buttons" },
+        { head: "Light mode — backgrounds & text" },
+        { p: "theme.light.bg", l: "Page background" },
+        { p: "theme.light.bg2", l: "Section background" },
+        { p: "theme.light.surface", l: "Card surface" },
+        { p: "theme.light.raised", l: "Raised surface" },
+        { p: "theme.light.border", l: "Borders & dividers" },
+        { p: "theme.light.text", l: "Body & heading text" },
+        { p: "theme.light.muted", l: "Muted / secondary text" },
+        { p: "theme.light.onBrand", l: "Text on coloured buttons" }
       ] },
 
     { id: "layout", title: "Layout", custom: "layout",
@@ -88,7 +107,11 @@
 
     { id: "services", title: "Services", fields: [
         { p: "services.eyebrow", l: "Eyebrow" }, { p: "services.title", l: "Title", t: "area" }, { p: "services.sub", l: "Subtitle", t: "area" }
-      ], lists: [{ p: "services.items", l: "Service cards", item: [{ k: "tag", l: "Tag" }, { k: "title", l: "Title" }, { k: "text", l: "Text", t: "area" }] }] },
+      ], lists: [{ p: "services.items", l: "Service cards", item: [
+          { k: "tag", l: "Tag" }, { k: "title", l: "Title" }, { k: "text", l: "Text", t: "area" },
+          { k: "cta", l: "Button label (e.g. Get Started, Book a Call)" },
+          { k: "ctaHref", l: "Button link (e.g. contact.html, pricing.html)" }
+        ] }] },
 
     { id: "process", title: "Process", fields: [
         { p: "process.eyebrow", l: "Eyebrow" }, { p: "process.title", l: "Title", t: "area" }, { p: "process.sub", l: "Subtitle", t: "area" }
@@ -133,8 +156,8 @@
         { p: "testimonials.eyebrow", l: "Eyebrow" }, { p: "testimonials.title", l: "Title", t: "area" }
       ], lists: [{ p: "testimonials.items", l: "Quotes", item: [
           { k: "quote", l: "Quote", t: "area" }, { k: "initials", l: "Initials" }, { k: "name", l: "Name" }, { k: "role", l: "Role / company" },
-          { k: "media", l: "Reel/photo example (image upload)", t: "upload" },
-          { k: "video", l: "…or a video URL (YouTube / Vimeo / MP4) — used instead of the image" },
+          { k: "video", l: "Reel video (upload an MP4/WebM/MOV — plays in the Reels carousel) or paste a YouTube / Vimeo / MP4 URL", t: "videoupload" },
+          { k: "media", l: "…or a photo example (image upload, used only when no video)", t: "upload" },
           { k: "caption", l: "Explain this example", t: "area" }
         ] }] },
 
@@ -171,7 +194,9 @@
 
     { id: "footer", title: "Footer", fields: [
         { p: "footer.tagline", l: "Tagline", t: "area" }, { p: "footer.email", l: "Email" }, { p: "footer.phone", l: "Phone" },
-        { p: "footer.mapLabel", l: "Map link label" }, { p: "footer.mapUrl", l: "Map link URL (Google Maps, etc.)" },
+        { p: "footer.mapQuery", l: "Map location — address or place name (shows a clickable Google Maps picture)" },
+        { p: "footer.mapLabel", l: "Map caption (shown on the map)" },
+        { p: "footer.mapUrl", l: "Map link override (optional — leave blank to auto-link to Google Maps)" },
         { p: "footer.copyright", l: "Copyright line" }
       ], lists: [
         { p: "footer.locations", l: "Locations", item: [{ k: "label", l: "Label" }, { k: "sub", l: "Subtitle" }] },
@@ -308,6 +333,55 @@
     f.appendChild(box);
     return f;
   }
+  // Upload a reel video file OR paste a video URL (YouTube / Vimeo / MP4).
+  // Stores either the uploaded path or the typed URL via onChange.
+  function videoUploadField(label, value, onChange) {
+    var MAX_MB = 50;
+    var f = el("div", "field");
+    f.appendChild(el("label", null, esc(label)));
+    var box = el("div", "upload-box");
+    var preview = el("div", "upload-preview video-preview");
+    function isFile(v) { return /\.(mp4|webm|ogg|ogv|mov)(\?|#|$)/i.test(v || ""); }
+    function paint() {
+      if (value && isFile(value)) {
+        preview.innerHTML = '<video src="' + esc(value) + '" muted playsinline preload="metadata" controls></video>';
+      } else if (value) {
+        preview.innerHTML = '<span class="upload-empty">Linked video: ' + esc(value) + "</span>";
+      } else {
+        preview.innerHTML = '<span class="upload-empty">No video yet</span>';
+      }
+    }
+    paint();
+    var controls = el("div", "upload-controls");
+    var pick = el("button", "btn-mini", "Choose video…"); pick.type = "button";
+    var clear = el("button", "btn-mini ghost", "Remove"); clear.type = "button";
+    var file = el("input"); file.type = "file"; file.accept = "video/mp4,video/webm,video/ogg,video/quicktime"; file.className = "hidden";
+    pick.addEventListener("click", function () { file.click(); });
+    clear.addEventListener("click", function () { value = ""; onChange(""); urlIn.value = ""; paint(); });
+    file.addEventListener("change", function () {
+      var fl = file.files[0]; if (!fl) return;
+      if (fl.size > MAX_MB * 1024 * 1024) { toast("Video too large (max " + MAX_MB + "MB). Trim or compress it first.", true); file.value = ""; return; }
+      var orig = pick.textContent; pick.disabled = true; pick.textContent = "Uploading…";
+      var fr = new FileReader();
+      fr.onload = function () {
+        uploadImage(fl.name, fr.result).then(function (src) {
+          value = src; onChange(src); urlIn.value = ""; paint(); toast("Video uploaded. Save to apply.");
+        }).catch(function (msg) {
+          toast(msg || "Upload failed — the server is needed for video (too big to embed).", true);
+        }).then(function () { pick.disabled = false; pick.textContent = orig; });
+        file.value = "";
+      };
+      fr.readAsDataURL(fl);
+    });
+    controls.appendChild(pick); controls.appendChild(clear);
+    var urlIn = el("input"); urlIn.type = "text"; urlIn.className = "video-url";
+    urlIn.placeholder = "…or paste a YouTube / Vimeo / MP4 URL";
+    urlIn.value = (value && !isFile(value)) ? value : "";
+    urlIn.addEventListener("input", function () { value = urlIn.value.trim(); onChange(value); paint(); });
+    box.appendChild(preview); box.appendChild(controls); box.appendChild(urlIn); box.appendChild(file);
+    f.appendChild(box);
+    return f;
+  }
   // Live typography preview (rendered inside the Typography panel)
   function applyPreview() {
     var h = document.getElementById("fp-h"), b = document.getElementById("fp-b");
@@ -329,15 +403,52 @@
     }, true);
   }
 
-  function colorBlock(c) {
+  function colorBlock(c, onChange) {
     var wrap = el("div", "color-field");
     wrap.appendChild(el("label", null, esc(c.l)));
     var row = el("div", "row");
     var swatch = el("input"); swatch.type = "color"; swatch.value = normHex(getPath(data, c.p));
     var hex = el("input"); hex.type = "text"; hex.value = getPath(data, c.p) || "";
-    swatch.addEventListener("input", function () { hex.value = swatch.value; setPath(data, c.p, swatch.value); });
-    hex.addEventListener("input", function () { setPath(data, c.p, hex.value); if (/^#([0-9a-f]{3}){1,2}$/i.test(hex.value)) swatch.value = hex.value; });
+    swatch.addEventListener("input", function () { hex.value = swatch.value; setPath(data, c.p, swatch.value); if (onChange) onChange(); });
+    hex.addEventListener("input", function () { setPath(data, c.p, hex.value); if (/^#([0-9a-f]{3}){1,2}$/i.test(hex.value)) { swatch.value = hex.value; if (onChange) onChange(); } });
     row.appendChild(swatch); row.appendChild(hex); wrap.appendChild(row);
+    return wrap;
+  }
+  // Live theme preview: a mock mini-site whose CSS variables reflect the current palette.
+  function themePreview() {
+    var wrap = el("div", "theme-preview");
+    var head = el("div", "tp-head");
+    head.innerHTML = '<span class="section-label" style="margin:0">Live preview</span>';
+    var toggle = el("button", "btn-mini ghost", "Dark / Light"); toggle.type = "button";
+    head.appendChild(toggle);
+    var stage = el("div", "tp-stage");
+    wrap.appendChild(head); wrap.appendChild(stage);
+    var mode = "dark";
+    function paint() {
+      var t = getPath(data, "theme") || {};
+      var m = (t[mode]) || {};
+      var brand = t.teal || "#2ABFB0", deep = t.deep || "#1B7A6E";
+      stage.setAttribute("style",
+        "--brand-teal:" + brand + ";--brand-deep:" + deep +
+        ";--bg:" + (m.bg || "#0B1124") + ";--bg2:" + (m.bg2 || "#0E1730") +
+        ";--surface:" + (m.surface || "#14203C") + ";--raised:" + (m.raised || "#1B2A4A") +
+        ";--border:" + (m.border || "#27395E") + ";--text:" + (m.text || "#EAF6F4") +
+        ";--muted:" + (m.muted || "#93B2B4") + ";--onBrand:" + (m.onBrand || "#06231F") + ";");
+      stage.innerHTML =
+        '<div class="tp-card" style="background:var(--surface);border-color:var(--border)">' +
+          '<div class="tp-title" style="color:var(--text)">Grow faster, spend smarter</div>' +
+          '<div class="tp-text" style="color:var(--muted)">Full-service social media at honest prices.</div>' +
+          '<div class="tp-row">' +
+            '<span class="tp-btn" style="background:linear-gradient(135deg,var(--brand-teal),var(--brand-deep));color:var(--onBrand)">Get started</span>' +
+            '<span class="tp-chip" style="background:var(--raised);color:var(--text);border-color:var(--border)">Chip</span>' +
+            '<span class="tp-link" style="color:var(--brand-teal)">Learn more →</span>' +
+          '</div>' +
+        '</div>';
+      stage.style.background = "var(--bg2)";
+    }
+    toggle.addEventListener("click", function () { mode = mode === "dark" ? "light" : "dark"; paint(); });
+    wrap.update = paint;
+    paint();
     return wrap;
   }
   function normHex(v) { return (/^#([0-9a-f]{3}){1,2}$/i.test(v || "")) ? v : "#000000"; }
@@ -404,6 +515,7 @@
       if (it.t === "bool") card.appendChild(boolField(it.l, cur, function (v) { a[idx][it.k] = v; }));
       else if (it.t === "lines") card.appendChild(linesField(it.l, cur, function (v) { a[idx][it.k] = v; }));
       else if (it.t === "upload") card.appendChild(uploadField(it.l, cur, function (v) { a[idx][it.k] = v; }));
+      else if (it.t === "videoupload") card.appendChild(videoUploadField(it.l, cur, function (v) { a[idx][it.k] = v; }));
       else if (it.t === "select") card.appendChild(selectField(it.l, cur, it.opts, function (v) { a[idx][it.k] = v; }, it.optLabels));
       else card.appendChild(textField(it.l, cur, function (v) { a[idx][it.k] = v; }, it.t === "area"));
     });
@@ -724,6 +836,7 @@
         if (fld.t === "select") panel.appendChild(selectField(fld.l, getPath(data, fld.p), fld.opts, onIn, fld.optLabels));
         else if (fld.t === "range") panel.appendChild(rangeField(fld.l, getPath(data, fld.p), fld.min, fld.max, fld.step, fld.unit, onIn));
         else if (fld.t === "upload") panel.appendChild(uploadField(fld.l, getPath(data, fld.p), onIn));
+        else if (fld.t === "videoupload") panel.appendChild(videoUploadField(fld.l, getPath(data, fld.p), onIn));
         else if (fld.t === "bool") panel.appendChild(boolField(fld.l, getPath(data, fld.p), onIn));
         else panel.appendChild(textField(fld.l, getPath(data, fld.p), onIn, fld.t === "area"));
       });
@@ -734,7 +847,22 @@
           "<div id='fp-b' class='fp-b'>AstroSync blends Houston-based strategy with a world-class execution team — full-service social media marketing at honest prices. 0123456789</div>"));
         applyPreview();
       }
-      if (sec.colors) { var cg = el("div", "colors"); sec.colors.forEach(function (c) { cg.appendChild(colorBlock(c)); }); panel.appendChild(cg); }
+      if (sec.colors) {
+        var preview = (sec.id === "theme") ? themePreview() : null;
+        var onColor = preview ? function () { preview.update(); } : null;
+        var cg = el("div", "colors");
+        var grid = null;
+        sec.colors.forEach(function (c) {
+          if (c.head) {
+            cg.appendChild(el("div", "color-group-head", esc(c.head) + (c.note ? '<span>' + esc(c.note) + "</span>" : "")));
+            grid = el("div", "color-grid"); cg.appendChild(grid);
+          } else {
+            (grid || cg).appendChild(colorBlock(c, onColor));
+          }
+        });
+        if (preview) panel.appendChild(preview);
+        panel.appendChild(cg);
+      }
       (sec.lists || []).forEach(function (ls) { panel.appendChild(listEditor(ls)); });
       panels.appendChild(panel);
     });
@@ -801,11 +929,27 @@
       buildPanels();
     });
   }
+  // Deep-merge loaded content over the defaults: objects merge (so newly-added
+  // default keys like theme.dark/.light fill gaps in older saved content), arrays
+  // replace wholesale (so user deletions stick).
+  function deepMerge(base, over) {
+    if (Array.isArray(over)) return over.slice();
+    if (over && typeof over === "object") {
+      var out = {};
+      Object.keys(base || {}).concat(Object.keys(over)).forEach(function (k) {
+        if (out.hasOwnProperty(k)) return;
+        var b = base ? base[k] : undefined, o = over[k];
+        out[k] = (o === undefined) ? b
+               : (o && typeof o === "object") ? deepMerge(b || (Array.isArray(o) ? [] : {}), o)
+               : o;
+      });
+      return out;
+    }
+    return over === undefined ? base : over;
+  }
   function mergeDefaults(loaded) {
-    // shallow-ensure all top-level keys exist so the editor never has gaps
-    var out = clone(DEFAULTS);
-    Object.keys(loaded || {}).forEach(function (k) { out[k] = loaded[k]; });
-    return out;
+    // Ensure every default key (incl. nested) exists so the editor never has gaps.
+    return deepMerge(DEFAULTS, loaded || {});
   }
 
   /* ---------- init ---------- */

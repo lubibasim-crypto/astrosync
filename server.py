@@ -33,6 +33,10 @@ TOKEN_TTL = 60 * 60 * 8  # 8 hours
 mimetypes.add_type("image/svg+xml", ".svg")
 mimetypes.add_type("font/woff2", ".woff2")
 mimetypes.add_type("application/javascript", ".js")
+mimetypes.add_type("video/mp4", ".mp4")
+mimetypes.add_type("video/webm", ".webm")
+mimetypes.add_type("video/ogg", ".ogv")
+mimetypes.add_type("video/quicktime", ".mov")
 
 
 # ----------------------------- storage / auth -----------------------------
@@ -119,36 +123,46 @@ def write_content(obj):
     os.replace(tmp, CONTENT_FILE)  # atomic
 
 
-# Allowed image uploads (mime -> extension) and a 3 MB cap.
+# Allowed uploads (mime -> extension). Images are capped at 3 MB, videos at 50 MB.
 ALLOWED_IMG = {
     "image/png": ".png", "image/jpeg": ".jpg", "image/svg+xml": ".svg",
     "image/webp": ".webp", "image/gif": ".gif",
 }
-MAX_UPLOAD = 3 * 1024 * 1024
+ALLOWED_VIDEO = {
+    "video/mp4": ".mp4", "video/webm": ".webm",
+    "video/ogg": ".ogv", "video/quicktime": ".mov",
+}
+MAX_UPLOAD = 3 * 1024 * 1024         # images
+MAX_VIDEO = 50 * 1024 * 1024         # testimonial reels
 
 
 def save_upload(name, data_url):
     """Decode a base64 data URL, validate, and store under data/uploads/.
 
-    Returns the public relative path (e.g. "data/uploads/logo-ab12cd34.png")
-    or None if the payload is invalid / disallowed / too large.
+    Accepts images (<= 3 MB) and short videos (<= 50 MB). Returns the public
+    relative path (e.g. "data/uploads/logo-ab12cd34.png") or None if the
+    payload is invalid / disallowed / too large.
     """
     if not isinstance(data_url, str) or not data_url.startswith("data:"):
         return None
     header, _, b64 = data_url.partition(",")
     mime = header[5:].split(";")[0].strip().lower()
     ext = ALLOWED_IMG.get(mime)
+    cap = MAX_UPLOAD
+    if not ext:
+        ext = ALLOWED_VIDEO.get(mime)
+        cap = MAX_VIDEO
     if not ext or not b64:
         return None
     try:
         raw = base64.b64decode(b64, validate=True)
     except Exception:
         return None
-    if not raw or len(raw) > MAX_UPLOAD:
+    if not raw or len(raw) > cap:
         return None
     os.makedirs(UPLOAD_DIR, exist_ok=True)
     stem = re.sub(r"[^A-Za-z0-9._-]", "", os.path.basename(name or ""))
-    stem = os.path.splitext(stem)[0][:40] or "logo"
+    stem = os.path.splitext(stem)[0][:40] or "upload"
     fname = "%s-%s%s" % (stem, secrets.token_hex(4), ext)
     with open(os.path.join(UPLOAD_DIR, fname), "wb") as f:
         f.write(raw)
@@ -375,7 +389,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json({"error": "bad json"}, 400)
             src = save_upload(data.get("name", ""), data.get("dataUrl", ""))
             if not src:
-                return self.send_json({"error": "invalid image (png/jpg/svg/webp/gif, max 3MB)"}, 400)
+                return self.send_json({"error": "invalid file (image png/jpg/svg/webp/gif ≤ 3MB, or video mp4/webm/ogg/mov ≤ 50MB)"}, 400)
             return self.send_json({"ok": True, "src": src})
         if path == "/api/contact":
             try:
@@ -423,14 +437,45 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json({"error": "not found"}, 404)
         ctype = mimetypes.guess_type(full)[0] or "application/octet-stream"
         try:
-            with open(full, "rb") as f:
-                body = f.read()
+            size = os.path.getsize(full)
         except OSError:
             return self.send_json({"error": "not found"}, 404)
-        self.send_response(200)
+
+        # Honour HTTP Range requests (required by Safari/iOS to play <video>).
+        rng = self.headers.get("Range")
+        start, end = 0, size - 1
+        partial = False
+        if rng:
+            m = re.match(r"bytes=(\d*)-(\d*)", rng.strip())
+            if m and (m.group(1) or m.group(2)):
+                if m.group(1):
+                    start = int(m.group(1))
+                    end = int(m.group(2)) if m.group(2) else size - 1
+                else:  # suffix range: bytes=-N → last N bytes
+                    start = max(0, size - int(m.group(2)))
+                if start >= size or start > end:
+                    self.send_response(416)
+                    self.send_header("Content-Range", "bytes */%d" % size)
+                    self.end_headers()
+                    return
+                end = min(end, size - 1)
+                partial = True
+
+        length = end - start + 1
+        try:
+            with open(full, "rb") as f:
+                f.seek(start)
+                body = f.read(length)
+        except OSError:
+            return self.send_json({"error": "not found"}, 404)
+
+        self.send_response(206 if partial else 200)
         self.send_header("Content-Type", ctype)
-        self.send_header("Content-Length", str(len(body)))
-        if "/assets/fonts/" in path or path.endswith((".woff2", ".svg", ".jpg", ".png")):
+        self.send_header("Content-Length", str(length))
+        self.send_header("Accept-Ranges", "bytes")
+        if partial:
+            self.send_header("Content-Range", "bytes %d-%d/%d" % (start, end, size))
+        if "/assets/fonts/" in path or path.endswith((".woff2", ".svg", ".jpg", ".png", ".mp4", ".webm")):
             self.send_header("Cache-Control", "public, max-age=86400")
         else:
             self.send_header("Cache-Control", "no-cache")
